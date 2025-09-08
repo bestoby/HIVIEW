@@ -245,6 +245,10 @@ int gsf_mpp_cfg_sns(char *path, gsf_mpp_cfg_t *cfg)
       mppex_comm_bt656_cfg(&bt656);
     }
   }
+  else if (cfg->second == 4) //USB-UVC
+  {
+    mppex_comm_uvc_uyvy = 0; // 0: yuyv, 1: uyvy;
+  }
   
   if(dl)
   {

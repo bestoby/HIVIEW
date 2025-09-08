@@ -80,4 +80,7 @@ typedef struct
 }mppex_bt656_cfg_t;
 int mppex_comm_bt656_cfg(mppex_bt656_cfg_t *bt656);
 
+// 0: yuyv, 1: uyvy;
+extern int mppex_comm_uvc_uyvy;
+
 #endif //__mppex_h__
