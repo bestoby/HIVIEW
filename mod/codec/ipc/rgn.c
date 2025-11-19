@@ -300,6 +300,7 @@ static int codec_venc_height(int ch, int i)
 }
 
 //#define __RGN_CANVAS // __RGN_CANVAS is bad
+#define __RGN_VPSS 0   // RGN on VPSS
 
 int gsf_rgn_osd_set(int ch, int idx, gsf_osd_t *_osd)
 {
@@ -309,7 +310,11 @@ int gsf_rgn_osd_set(int ch, int idx, gsf_osd_t *_osd)
   gsf_osd_t __osd = *_osd;
   gsf_osd_t *osd = &__osd;
   
+  #if __RGN_VPSS
+  for(i = 0; i < 1; i++)
+  #else
   for(i = 0; i < GSF_CODEC_VENC_NUM; i++)
+  #endif
   {
     
     if(!codec_ipc.venc[i].en)
@@ -333,6 +338,22 @@ int gsf_rgn_osd_set(int ch, int idx, gsf_osd_t *_osd)
     osd->wh[0] *= wr;
     osd->wh[1] *= hr;
     
+    #if __RGN_VPSS
+    rgn_type = OVERLAYEX_RGN;
+    rgn_attr_fmt = PIXEL_FORMAT_ARGB_1555;
+    rgn_attr_bg = 0x00000000;//ARG1555_RED;
+    rgn_attr_w = 2;
+    rgn_attr_h = 2;
+    rgn_attr_canvas = 2;
+    
+    rgn_ch_mod = HI_ID_VPSS;
+    rgn_ch_dev = 0;
+    rgn_ch_chn = ch*GSF_CODEC_VENC_NUM+i;
+    //printf("handle:%d, ch:%d, i:%d, s32ChnId:%d\n", handle, ch, i, rgn_ch_chn);
+    rgn_chattr_show = osd->en;//HI_TRUE;
+    rgn_chattr_type = OVERLAYEX_RGN;
+    
+    #else    
     
     rgn_type = OVERLAY_RGN;
     rgn_attr_fmt = PIXEL_FORMAT_ARGB_1555;
@@ -347,6 +368,8 @@ int gsf_rgn_osd_set(int ch, int idx, gsf_osd_t *_osd)
     //printf("handle:%d, ch:%d, i:%d, s32ChnId:%d\n", handle, ch, i, rgn_ch_chn);
     rgn_chattr_show = osd->en;//HI_TRUE;
     rgn_chattr_type = OVERLAY_RGN;
+	  #endif
+	  
     rgn_chattr_over_x = ALIGN_UP(osd->point[0], 2);
     rgn_chattr_over_y = ALIGN_UP(osd->point[1], 2);
     rgn_chattr_over_layer   = idx;
@@ -574,8 +597,12 @@ int gsf_rgn_rect_set(int ch, int idx, gsf_rgn_rects_t *rects, int mask)
 {
   int i = 0, r = 0, b = 0;
   unsigned int ARG1555_RED = argb8888_1555(0x01FF0000);
-   
+  
+  #if __RGN_VPSS
+  for(i = 0; i < 1; i++)
+  #else
   for(i = 0; i < GSF_CODEC_VENC_NUM; i++)
+  #endif
   {
     if(!codec_ipc.venc[i].en)
       continue;
@@ -585,6 +612,22 @@ int gsf_rgn_rect_set(int ch, int idx, gsf_rgn_rects_t *rects, int mask)
     int handle = GSF_RGN_OBJ_HANDLE(ch, OBJ_OSD, i, idx);
     
     memset(&rgn_obj[handle].rgn, 0, sizeof(rgn_obj[handle].rgn));
+    
+    #if __RGN_VPSS
+    rgn_type = OVERLAYEX_RGN;
+    rgn_attr_fmt = PIXEL_FORMAT_ARGB_1555;
+    rgn_attr_bg = 0x00000000;//argb8888_1555(0x00FF0000);
+    rgn_attr_w = ALIGN_UP(codec_venc_width(ch, i), 2);
+    rgn_attr_h = ALIGN_UP(codec_venc_height(ch, i), 2);
+    rgn_attr_canvas = 2;
+    
+    rgn_ch_mod = HI_ID_VPSS;
+    rgn_ch_dev = 0;
+    rgn_ch_chn = ch*GSF_CODEC_VENC_NUM+i;
+    rgn_chattr_show = HI_TRUE;
+    rgn_chattr_type = OVERLAYEX_RGN;
+    
+    #else
     
     rgn_type = OVERLAY_RGN;
     rgn_attr_fmt = PIXEL_FORMAT_ARGB_1555;
@@ -598,6 +641,8 @@ int gsf_rgn_rect_set(int ch, int idx, gsf_rgn_rects_t *rects, int mask)
     rgn_ch_chn = ch*GSF_CODEC_VENC_NUM+i;
     rgn_chattr_show = HI_TRUE;
     rgn_chattr_type = OVERLAY_RGN;
+    #endif
+    
     rgn_chattr_over_x = 0;
     rgn_chattr_over_y = 0;
     rgn_chattr_over_layer   = idx;
