@@ -52,6 +52,7 @@ int mppex_comm_uvc_get(int idx, ot_video_frame_info *pstFrameInfo, int s32MilliS
 int mppex_comm_uvc_rel(int idx, ot_video_frame_info *pstFrameInfo);
 
 int mppex_comm_vi_bb(int snscnt, gsf_mpp_vi_t *vi, sample_vi_cfg vi_cfg[HI_VI_MAX_DEV_NUM]);
+int mppex_comm_vi_mm(int snscnt, gsf_mpp_vi_t *vi, sample_vi_cfg vi_cfg[HI_VI_MAX_DEV_NUM]);
 int mppex_comm_vi_ee(int snscnt, gsf_mpp_vi_t *vi, sample_vi_cfg vi_cfg[HI_VI_MAX_DEV_NUM]);
 
 int mppex_comm_vpss_bb(gsf_mpp_vpss_t *vpss, sample_venc_vpss_chn_attr *vpss_param);

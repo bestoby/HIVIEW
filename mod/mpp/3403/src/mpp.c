@@ -378,6 +378,8 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
     }
   }
   
+  mppex_comm_vi_bb(snscnt, vi, vi_cfg);
+  
   // get vpss param
   vi_size = vi_cfg[0].dev_info.dev_attr.in_size;
   
@@ -452,7 +454,7 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
     } 
   }
   
-  mppex_comm_vi_bb(snscnt, vi, vi_cfg);
+  mppex_comm_vi_mm(snscnt, vi, vi_cfg);
     
   for(i = 0; i < snscnt; i++)
   {
