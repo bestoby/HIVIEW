@@ -232,7 +232,7 @@ int gsf_mpp_venc_recv(gsf_mpp_recv_t *recv);
 int gsf_mpp_venc_dest();
 int gsf_mpp_venc_snap(VENC_CHN VencChn, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
 int gsf_mpp_venc_snap4vpss(int VpssGrp, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
-
+int gsf_mpp_venc_snap4vi(int ViPipe, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
 
 //isp;
 int gsf_mpp_scene_start(char *path, int scenemode);
@@ -473,6 +473,8 @@ typedef enum {
   VO_LAYOUT_6MUX  = 6, VO_LAYOUT_25MUX = 25,
   VO_LAYOUT_8MUX  = 8, VO_LAYOUT_36MUX = 36,
   VO_LAYOUT_9MUX  = 9, VO_LAYOUT_64MUX = 64,
+  VO_LAYOUT_2X4   = 65,
+  VO_LAYOUT_1X2   = 66,
   VO_LAYOUT_BUTT
 }VO_LAYOUT_E;
 
@@ -542,9 +544,12 @@ int gsf_mpp_vo_rect(int volayer, int ch, RECT_S *rect, int priority);
 //private for mpp;
 #include "hi_sns_ctrl.h"
 
-extern int SENSOR_TYPE;
+extern int SENSOR_CNT;
 extern int SENSOR0_TYPE;
 extern int SENSOR1_TYPE;
+extern int SENSOR2_TYPE;
+extern int SENSOR3_TYPE;
+
 extern hi_isp_sns_obj* sample_comm_isp_get_sns_obj(sample_sns_type sns_type);
 
 

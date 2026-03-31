@@ -1104,7 +1104,7 @@ static hi_s32 sample_comm_venc_h264_param_init(hi_venc_chn_attr *chn_attr, sampl
         sample_comm_venc_h264_cbr_param_init(chn_attr, gop, stats_time, frame_rate);
         if(1) //maohw
         {
-          chn_attr->rc_attr.h264_cbr.src_frame_rate = 30; //vi
+          chn_attr->rc_attr.h264_cbr.src_frame_rate = (frame_rate > 30)?frame_rate:30; //vi
           chn_attr->rc_attr.h264_cbr.dst_frame_rate = frame_rate;//target
           if(chn_param->bitrate > 0)
             chn_attr->rc_attr.h264_cbr.bit_rate = chn_param->bitrate;
@@ -1145,7 +1145,7 @@ static hi_s32 sample_comm_venc_h265_param_init(hi_venc_chn_attr *chn_attr, sampl
         sample_comm_venc_h265_cbr_param_init(chn_attr, gop, stats_time, frame_rate);
         if(1) //maohw
         {
-          chn_attr->rc_attr.h265_cbr.src_frame_rate = 30; //vi
+          chn_attr->rc_attr.h265_cbr.src_frame_rate = (frame_rate > 30)?frame_rate:30; //vi
           chn_attr->rc_attr.h265_cbr.dst_frame_rate = frame_rate;//target
           if(chn_param->bitrate > 0)
             chn_attr->rc_attr.h265_cbr.bit_rate = chn_param->bitrate;
@@ -1202,6 +1202,8 @@ static hi_s32 sample_comm_venc_channel_param_init(sample_comm_venc_chn_param *ch
     chn_attr->venc_attr.max_pic_height = venc_size.height;
     chn_attr->venc_attr.pic_width = venc_size.width;   /* the picture width */
     chn_attr->venc_attr.pic_height = venc_size.height; /* the picture height */
+
+    printf("%s => type:%d, profile:%d, width:%d, height:%d\n\n", __func__, type, profile, venc_size.width, venc_size.height);
 
     if (type == HI_PT_MJPEG || type == HI_PT_JPEG) {
         chn_attr->venc_attr.buf_size =
@@ -1484,7 +1486,7 @@ static pthread_t SnapTask;
 
 void* sample_comm_venc_snap_processTask(void *parm)
 {
-  hi_venc_chn venc_chn = (hi_venc_chn)parm;
+  hi_venc_chn venc_chn = (hi_venc_chn)(uintptr_t)parm;
   
   sample_comm_venc_snap_process(venc_chn, 0xffffffff, 0, 0);
   return NULL;
@@ -1505,7 +1507,7 @@ hi_s32 sample_comm_venc_snap_processCB(hi_venc_chn venc_chn, hi_u32 snap_cnt, in
   if(snap_cnt == 0xffffffff)
   {
     SnapTaskStartFlag = HI_TRUE;
-    ret = pthread_create(&SnapTask, 0, sample_comm_venc_snap_processTask, (void*)venc_chn);
+    ret = pthread_create(&SnapTask, 0, sample_comm_venc_snap_processTask, (void*)(uintptr_t)venc_chn);
   }
   else 
   {

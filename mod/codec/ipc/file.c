@@ -107,6 +107,7 @@ int file_vdec(void)
   
   RECT_S vo_1 = {0, 0, res.w, res.h};
   gsf_mpp_vo_rect(VOLAYER_HD0, 1, &vo_1, 0); // vo_1 for vdec;
+  //HI_MPI_VO_SetChnFrameRate(VOLAYER_HD0, 1, 30);
 
   return pthread_create(&pid, 0, vdec_task, (void*)mp4_filename);
 }

@@ -1381,9 +1381,10 @@ static hi_s32 sample_comm_vi_register_sensor_lib(hi_vi_pipe vi_pipe, hi_u8 pipe_
     ret = sample_comm_isp_sensor_regiter_callback(vi_pipe, sns_type);
     if (ret != HI_SUCCESS) {
         printf("register sensor to ISP %d failed\n", vi_pipe);
-        return HI_FAILURE;
+        //maohw return HI_FAILURE;
     }
-
+    printf("%s => vi_pipe:%d, sns_type:%d\n", __func__, vi_pipe, sns_type);
+    
     if (pipe_index > 0) {
         bus_id = -1;
     } else {
@@ -1393,7 +1394,7 @@ static hi_s32 sample_comm_vi_register_sensor_lib(hi_vi_pipe vi_pipe, hi_u8 pipe_
     ret = sample_comm_isp_bind_sns(vi_pipe, sns_type, bus_id);
     if (ret != HI_SUCCESS) {
         printf("register sensor bus id %u failed\n", bus_id);
-        goto exit0;
+        //maohw goto exit0;
     }
     if (sns_type == GST_412C_SLAVE_THERMO_T3_384_288_30FPS_14BIT) {
         ret = sample_comm_isp_thermo_lib_callback(vi_pipe);
@@ -1475,13 +1476,13 @@ static hi_s32 sample_comm_vi_start_one_pipe_isp(hi_vi_pipe vi_pipe, hi_u8 pipe_i
 
     ret = hi_mpi_isp_mem_init(vi_pipe);
     if (ret != HI_SUCCESS) {
-        printf("HI_MPI_ISP_MemInit failed with 0x%x!\n", ret);
+        printf("hi_mpi_isp_mem_init failed with 0x%x!\n", ret);
         goto exit0;
     }
 
     ret = hi_mpi_isp_set_pub_attr(vi_pipe, &vi_cfg->pipe_info[pipe_index].isp_info.isp_pub_attr);
     if (ret != HI_SUCCESS) {
-        printf("HI_MPI_ISP_SetPubAttr(vi_pipe:%d, isp_pub_attr[%d,%d - %d,%d]) failed with 0x%x!\n"
+        printf("hi_mpi_isp_set_pub_attr(vi_pipe:%d, isp_pub_attr[%d,%d - %d,%d]) failed with 0x%x!\n"
               , vi_pipe
               , vi_cfg->pipe_info[pipe_index].isp_info.isp_pub_attr.wnd_rect.x
               , vi_cfg->pipe_info[pipe_index].isp_info.isp_pub_attr.wnd_rect.y
@@ -1493,7 +1494,7 @@ static hi_s32 sample_comm_vi_start_one_pipe_isp(hi_vi_pipe vi_pipe, hi_u8 pipe_i
 
     ret = hi_mpi_isp_init(vi_pipe);
     if (ret != HI_SUCCESS) {
-        printf("HI_MPI_ISP_Init failed with 0x%x!\n", ret);
+        printf("hi_mpi_isp_init failed with 0x%x!\n", ret);
         return -1;
     }
 
@@ -1502,7 +1503,7 @@ static hi_s32 sample_comm_vi_start_one_pipe_isp(hi_vi_pipe vi_pipe, hi_u8 pipe_i
         (vi_cfg->pipe_info[pipe_index].isp_need_run == HI_TRUE)) {
         ret = sample_comm_isp_run(vi_pipe);
         if (ret != HI_SUCCESS) {
-            printf("ISP Run failed with 0x%x!\n", ret);
+            printf("sample_comm_isp_run failed with 0x%x!\n", ret);
             goto exit1;
         }
     }
@@ -1634,6 +1635,8 @@ hi_s32 sample_comm_vi_start_vi(const sample_vi_cfg *vi_cfg)
 {
     hi_s32 ret;
     hi_vi_dev vi_dev;
+            
+    printf("%s => mipi_dev:%d, vi_dev:%d, vi_pipe:%d\n", __func__, vi_cfg->mipi_info.mipi_dev, vi_cfg->dev_info.vi_dev, vi_cfg->bind_pipe.pipe_id[0]);
     
     if(vi_cfg->mipi_info.mipi_dev >= 0) //maohw
     {    
@@ -2938,7 +2941,7 @@ static hi_s32 sample_comm_vi_get_user_pic_frame_info(hi_size *dst_size, sample_v
     return HI_SUCCESS;
 }
 
-static hi_s32 sample_comm_vi_add_scale_task(hi_video_frame_info *src_frame, hi_video_frame_info *dst_frame)
+/*static*/ hi_s32 sample_comm_vi_add_scale_task(hi_video_frame_info *src_frame, hi_video_frame_info *dst_frame)
 {
     hi_s32 ret;
     hi_vgs_handle handle;
@@ -2976,6 +2979,7 @@ static hi_s32 sample_comm_vi_add_scale_task(hi_video_frame_info *src_frame, hi_v
 
     return HI_SUCCESS;
 }
+
 
 static hi_s32 sample_comm_vi_read_user_frame_file(hi_vi_pipe vi_pipe, sample_vi_user_frame_info *user_frame_info)
 {

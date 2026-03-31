@@ -130,7 +130,7 @@ static void msg_func_snap(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
   gsf_mpp_venc_snap4vpss(rsp->ch, 1, snap_cb, rsp);
   #else
   if(codec_nvr.venc[GSF_CODEC_SNAP_IDX].type == GSF_ENC_JPEG)
-  gsf_mpp_venc_snap(rsp->ch*GSF_CODEC_VENC_NUM+GSF_CODEC_SNAP_IDX, 1, snap_cb, rsp);
+    gsf_mpp_venc_snap(rsp->ch*GSF_CODEC_VENC_NUM+GSF_CODEC_SNAP_IDX, 1, snap_cb, rsp);
   #endif
   
   return;

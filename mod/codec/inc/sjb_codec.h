@@ -10,14 +10,14 @@
 #if defined(GSF_CPU_3519d_6CHN)
 #define GSF_CODEC_IPC_CHN   (6) // ipc channel num;
 #define GSF_CODEC_ST_NUM    (2) // stream num;
-#define GSF_CODEC_SNAP_IDX  (GSF_CODEC_ST_NUM)
-#define GSF_CODEC_VENC_NUM  (GSF_CODEC_ST_NUM)
+#define GSF_CODEC_SNAP_IDX  (GSF_CODEC_ST_NUM) 
+#define GSF_CODEC_VENC_NUM  (GSF_CODEC_ST_NUM) //delete snap venc;
 #warning "GSF_CPU_3519d_6CHN"
 #else
 #define GSF_CODEC_IPC_CHN   (4)   // ipc channel num;
 #define GSF_CODEC_ST_NUM    (2)   // stream num;
 #define GSF_CODEC_SNAP_IDX  (GSF_CODEC_ST_NUM)
-#define GSF_CODEC_VENC_NUM  (GSF_CODEC_ST_NUM+1)
+#define GSF_CODEC_VENC_NUM  (GSF_CODEC_ST_NUM+1) //keep sanp venc;
 #endif
 
 

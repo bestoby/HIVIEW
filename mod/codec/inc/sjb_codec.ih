@@ -151,6 +151,12 @@ STRUCT(gsf_img_ldc_t)
   FIELD(int, s32DistortionRatio);
 };
 
+STRUCT(gsf_img_dis_t)
+{
+  FIELD(int, bEnable);
+  FIELD(int, enMode); // 1: MODE_6_DOF_GME, 2: MODE_GYRO
+};
+
 
 STRUCT(gsf_img_3dnr_t)
 {
@@ -178,6 +184,7 @@ STRUCT(gsf_img_all_t)
    FIELD(gsf_img_ldci_t, ldci);
    FIELD(gsf_img_3dnr_t, _3dnr);
    FIELD(gsf_img_ldc_t, ldc);
+   FIELD(gsf_img_dis_t, dis);
 };
 
 STRUCT(gsf_scene_ae_t)

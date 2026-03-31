@@ -78,10 +78,7 @@ unsigned int cfifo_recput_v(unsigned char *p1, unsigned int n1, unsigned char *p
   rec.video.width  = codec_ipc.venc[mgr->vst%GSF_CODEC_VENC_NUM].width;
   rec.video.height = codec_ipc.venc[mgr->vst%GSF_CODEC_VENC_NUM].height;
   rec.size = 0;
-#if 0
-  if(mgr->vst/GSF_CODEC_VENC_NUM == 0 && mgr->vst%GSF_CODEC_VENC_NUM == 0)
-    printf("vst:%d, venc_pts: %llu, pts:%u\n", mgr->vst, venc_pts, rec.pts);
-#endif
+
 
   gsf_sdp_t sdp;
   extern int venc_fixed_sdp(int ch, int st, gsf_sdp_t *sdp);
@@ -90,6 +87,11 @@ unsigned int cfifo_recput_v(unsigned char *p1, unsigned int n1, unsigned char *p
     rec.video.width = sdp.venc.width;
     rec.video.height = sdp.venc.height;
   }
+
+#if 0
+  if(mgr->vst/GSF_CODEC_VENC_NUM == 2 && mgr->vst%GSF_CODEC_VENC_NUM == 0)
+    printf("vst:%d, [%d x %d] venc_pts: %llu, pts:%u\n", mgr->vst, rec.video.width, rec.video.height, venc_pts, rec.pts);
+#endif
 
 #ifdef __FRM_PHY__
 
@@ -283,7 +285,7 @@ int gsf_venc_recv(VENC_CHN VeChn, PAYLOAD_TYPE_E PT, VENC_STREAM_S* pstStream, v
   
   if(venc_mgr[VeChn].video_fifo == NULL || len+sizeof(gsf_frm_t) > GSF_FRM_MAX_SIZE)
   {
-    printf("drop VeChn:%d, frame size:%d \n", VeChn, len+sizeof(gsf_frm_t));
+    printf("drop VeChn:%d, video_fifo:%p, frame size:%d \n", VeChn, venc_mgr[VeChn].video_fifo, len+sizeof(gsf_frm_t));
     goto __err;
   }
   
@@ -501,6 +503,7 @@ int gsf_venc_init(gsf_venc_ini_t *ini)
                           cfifo_recrel, 
                           &venc_mgr[i*GSF_CODEC_VENC_NUM+j].video_shmid,
                           0);
+     printf("chn:%d, size:%d, video_fifo:%p\n", i*GSF_CODEC_VENC_NUM+j, size, venc_mgr[i*GSF_CODEC_VENC_NUM+j].video_fifo);
     }
   }
   

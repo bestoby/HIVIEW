@@ -25,27 +25,7 @@ static int af_runing = 0;
 static pthread_t af_tid;
 static gsf_mpp_af_t af_ini = {0,};
 
-#if 0 //maohw
-static unsigned short  af_weight[HI_ISP_AE_ZONE_ROW][HI_ISP_AE_ZONE_COLUMN] =
-{
-  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1},
-  {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-};
-#else
-static unsigned short  af_weight[HI_ISP_AE_ZONE_ROW][HI_ISP_AE_ZONE_COLUMN] =
+static unsigned short  af_weight0[HI_ISP_AE_ZONE_ROW][HI_ISP_AE_ZONE_COLUMN] =
 {
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 
 	{0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0}, 
@@ -63,7 +43,27 @@ static unsigned short  af_weight[HI_ISP_AE_ZONE_ROW][HI_ISP_AE_ZONE_COLUMN] =
 	{0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0}, 
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} 
 };	
-#endif
+
+static unsigned short  af_weight1[HI_ISP_AE_ZONE_ROW][HI_ISP_AE_ZONE_COLUMN] =
+{
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+  {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+  {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+  {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+  {0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+};
+
+
 int af_set_statistic(ot_vi_pipe vi_pipe)
 {
 	td_s32 ret = TD_SUCCESS;
@@ -114,6 +114,10 @@ int af_get_value(HI_U32 FV[2])
 {
   td_s32 ret = 0;
   ot_vi_pipe vi_pipe = af_ini.ViPipe;
+  td_s32 af_alg = (int)(uintptr_t)af_ini.uargs;
+  unsigned short (*af_weight)[OT_ISP_AF_ZONE_ROW][OT_ISP_AF_ZONE_COLUMN] = NULL;
+  af_weight = (af_alg == 0)?(&af_weight0):(&af_weight1);
+
   ot_isp_af_stats af_stats;
   ot_isp_focus_zone zone_metrics[OT_ISP_WDR_MAX_FRAME_NUM][OT_ISP_AF_ZONE_ROW][OT_ISP_AF_ZONE_COLUMN] = {0};
   
@@ -138,11 +142,21 @@ int af_get_value(HI_U32 FV[2])
         td_u32 h2 = zone_metrics[k][i][j].h2;
         td_u32 v1 = zone_metrics[k][i][j].v1;
         td_u32 v2 = zone_metrics[k][i][j].v2;
-        fv1_n = (h1 * ALPHA + v1 * ((1 << BLEND_SHIFT) - ALPHA)) >> BLEND_SHIFT;
-        fv2_n = (h2 * BELTA + v2 * ((1 << BLEND_SHIFT) - BELTA)) >> BLEND_SHIFT;
-        sum_fv1 += af_weight[i][j] * fv1_n;
-        sum_fv2 += af_weight[i][j] * fv2_n;
-        wgt_sum += af_weight[i][j];
+        if(af_alg == 0)
+        {  
+          fv1_n = (h1 * ALPHA + v1 * ((1 << BLEND_SHIFT) - ALPHA)) >> BLEND_SHIFT;
+          fv2_n = (h2 * BELTA + v2 * ((1 << BLEND_SHIFT) - BELTA)) >> BLEND_SHIFT;
+          sum_fv1 += (*af_weight)[i][j] * fv1_n;
+          sum_fv2 += (*af_weight)[i][j] * fv2_n;
+          wgt_sum += (*af_weight)[i][j];
+        }
+        else
+        {
+          fv1_n = h1;
+          fv2_n = h2;
+          sum_fv1 = (((*af_weight)[i][j] * fv1_n) > sum_fv1)?((*af_weight)[i][j] * fv1_n):sum_fv1;
+          sum_fv2 = (((*af_weight)[i][j] * fv2_n) > sum_fv2)?((*af_weight)[i][j] * fv2_n):sum_fv2;
+        }
       }
     }
   }

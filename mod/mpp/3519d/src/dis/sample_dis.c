@@ -26,9 +26,10 @@ typedef enum {
     SAMPLE_DIS_GME_TYPE_BUTT
 } dis_gme_type;
 
+#define SENSOR_FPS  30 //30 
+
 hi_vi_pipe g_vi_pipe = 0;
 hi_vi_pipe g_send_vi_pipe = 3;
-
 hi_vi_chn  g_vi_chn = 0;
 
 hi_vpss_grp g_vpss_grp = 0;
@@ -41,7 +42,7 @@ hi_bool g_dis_save_stream = HI_TRUE;
 hi_bool g_dis_send_data = HI_FALSE;
 
 static sample_comm_venc_chn_param g_venc_chn_param = {
-    .frame_rate           = 30,
+    .frame_rate           = SENSOR_FPS,
     .stats_time           = 2,
     .gop                  = 60,
     .venc_size            = {1920, 1080},
@@ -113,7 +114,7 @@ static hi_s32 sample_dis_get_param_by_sensor(sample_sns_type sns_type, hi_dis_cf
         return HI_FAILURE;
     }
 
-    dis_cfg->frame_rate = 30; /* 30 fps default frame_rate */
+    dis_cfg->frame_rate = SENSOR_FPS; /* 30 fps default frame_rate */
     dis_attr->timelag  = 1000; /* 1000 default timelag */
 
     return ret;
@@ -141,7 +142,7 @@ static hi_s32 sample_dis_get_dis_cfg_and_attr(dis_gme_type gme_type, hi_dis_cfg 
     dis_cfg->crop_ratio = 80+10; // maohw 
     
     dis_cfg->buf_num = 10;    /* 10 sample buf num */
-    dis_cfg->frame_rate = 30; /* 30 sample frame rate */
+    dis_cfg->frame_rate = SENSOR_FPS; /* 30 sample frame rate */
     dis_cfg->camera_steady = HI_FALSE;
 
     if (gme_type == SAMPLE_DIS_GME_TYPE_4DOF) {
@@ -189,6 +190,7 @@ static hi_s32 sample_dis_set_dis_attr(const hi_dis_attr *dis_attr)
         sample_print("get dis out size failed.ret:0x%x !\n", ret);
         return HI_FAILURE;
     }
+    #if 0 //maohw vpss_set_chn width/height;
     vpss_chn_attr.width = dis_out_size.width;
     vpss_chn_attr.height = dis_out_size.height;
     ret = hi_mpi_vpss_set_chn_attr(g_vpss_grp, g_vpss_chn, &vpss_chn_attr);
@@ -197,10 +199,11 @@ static hi_s32 sample_dis_set_dis_attr(const hi_dis_attr *dis_attr)
         return HI_FAILURE;
     }
     printf("%s => hi_mpi_vpss_set_chn_attr width:%d, height:%d\n", __func__, vpss_chn_attr.width, vpss_chn_attr.height);
+    #endif
     return HI_SUCCESS;
 }
 
-/* maohw static*/ hi_s32 sample_dis_gme_enable(sample_sns_type sns_type, dis_gme_type gme_type)
+/* maohw static*/ hi_s32 sample_dis_gme_enable(hi_vi_pipe vi_pipe, dis_gme_type gme_type)
 {
     hi_s32 ret;
     hi_dis_cfg dis_cfg = { 0 };
@@ -211,11 +214,19 @@ static hi_s32 sample_dis_set_dis_attr(const hi_dis_attr *dis_attr)
         sample_print("sample dis get dis_cfg and dis_attr failed.ret:0x%x !\n", ret);
         return HI_FAILURE;
     }
+    
+    #if 0 //maohw
     ret = sample_dis_get_param_by_sensor(sns_type, &dis_cfg, &dis_attr);
     if (ret != HI_SUCCESS) {
         sample_print("sample_dis_get_param_by_sensor failed.ret:0x%x !\n", ret);
         return HI_FAILURE;
     }
+    #else
+    g_vi_pipe = vi_pipe;
+    dis_cfg.frame_rate = SENSOR_FPS; /* 30 fps default frame_rate */
+    dis_attr.timelag  = 1000; /* 1000 default timelag */
+    #endif
+    
     ret = hi_mpi_vi_set_chn_dis_cfg(g_vi_pipe, g_vi_chn, &dis_cfg);
     if (ret != HI_SUCCESS) {
         sample_print("set dis config failed.ret:0x%x !\n", ret);
@@ -620,7 +631,7 @@ static hi_s32 sample_dis_gme(hi_vo_intf_type vo_intf_type, dis_gme_type gme_type
     }
 
     /* step 4: set DIS config & attribute */
-    if (sample_dis_gme_enable(vi_cfg.sns_info.sns_type, gme_type) != HI_SUCCESS) {
+    if (sample_dis_gme_enable(g_vi_pipe, gme_type) != HI_SUCCESS) {
         goto exit;
     }
 

@@ -332,11 +332,10 @@ int gsf_rgn_osd_set(int ch, int idx, gsf_osd_t *_osd)
     
     //printf("ch:%d, idx:%d, en:%d, point[%d,%d], wr:%0.4f, hr:%0.4f\n", ch, idx, osd->en, osd->point[0], osd->point[1], wr, hr);
     
-    osd->point[0] *= wr;
-    osd->point[1] *= hr;
-    
-    osd->wh[0] *= wr;
-    osd->wh[1] *= hr;
+    osd->point[0] = _osd->point[0] *wr;
+    osd->point[1] = _osd->point[1] *hr;
+    osd->wh[0] = _osd->wh[0] *wr;
+    osd->wh[1] = _osd->wh[0] *hr;
     
     #if __RGN_VPSS
     rgn_type = OVERLAYEX_RGN;

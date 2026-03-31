@@ -21,7 +21,8 @@
 #include "lens.h"
 #include "main_func.h"
 
-static int avs = 0; // codec_ipc.vi.avs;
+static int channel3 = 0; 
+static int stitch   = 0; // codec_ipc.vi.avs;
 
 // if compile error, please add PIC_XXX to sample_comm.h:PIC_SIZE_E;
 #ifndef HAVE_PIC_288P
@@ -63,9 +64,11 @@ static int avs = 0; // codec_ipc.vi.avs;
           (w >= 2592 && h >= 1520)?PIC_2592x1520:\
           (w >= 2448 && h >= 2048)?PIC_2448x2048:\
           (w >= 1920)?PIC_1080P:\
+          (w >= 1280 && h >= 1024)?PIC_1280X1024:\
+          (w >= 1280 && h >= 800)?PIC_1280X800:  \
           (w >= 1280)?PIC_720P: \
           (w >= 720 && h >= 576)?PIC_D1_PAL: \
-          (w >= 720 && h >= 480)?PIC_D1_NTSC: \
+          (w >= 720 && h >= 480)?PIC_D1_NTSC:\
           (w >= 640 && h >= 640)?PIC_640P: \
           (w >= 640 && h >= 512)?PIC_512P: \
           (w >= 640 && h >= 360)?PIC_360P: \
@@ -83,6 +86,8 @@ static gsf_resolu_t __pic_wh[PIC_BUTT] = {
       [PIC_2592x1520] = {0, 2592, 1520},
       [PIC_2448x2048] = {0, 2448, 2048},
       [PIC_1080P]     = {0, 1920, 1080},
+      [PIC_1280X1024] = {0, 1280, 1024},
+      [PIC_1280X800]  = {0, 1280, 800},
       [PIC_720P]      = {0, 1280, 720},
       [PIC_D1_PAL]    = {0, 720, 576},
       [PIC_D1_NTSC]   = {0, 720, 480},
@@ -120,17 +125,48 @@ static gsf_mpp_vpss_t *p_vpss = NULL;
 static gsf_venc_ini_t *p_venc_ini = NULL;
 static gsf_mpp_cfg_t  *p_cfg = NULL;
 
+
 //second sdp hook, fixed venc cfg;
+#define TH1280 1
+
+#if TH1280
+#warning "second = 5, it's TH1280"
+//1: 1920x1080; 2: 640x512; -: 1280x1024
+#define SECOND_WIDTH(second) ((second) == 1?1920:(second) == 2?640:1280)
+#define SECOND_HEIGHT(second) ((second) == 1?1080:(second) == 2?512:1024)
+#define SECOND_HIRES(second) ((second) == 1?PIC_1080P:(second) == 2?PIC_512P:PIC_1280X1024)  
+#define SECOND_LORES(second) ((second) == 1?PIC_640P :(second) == 2?PIC_512P:PIC_1280X1024)
+#else
+#warning "second = 5, it's TH640"
+//1: 1920x1080; 2: 640x512; -: 640x512
 #define SECOND_WIDTH(second) ((second) == 1?1920:(second) == 2?640:640)
 #define SECOND_HEIGHT(second) ((second) == 1?1080:(second) == 2?512:512)
 #define SECOND_HIRES(second) ((second) == 1?PIC_1080P:(second) == 2?PIC_512P:PIC_512P)  
 #define SECOND_LORES(second) ((second) == 1?PIC_640P :(second) == 2?PIC_512P:PIC_512P)
+#endif
 
 int venc_fixed_sdp(int ch, int i, gsf_sdp_t *sdp)
 {
-  if(ch != 1)
+  //for test;
+  if(channel3 && ch == 2)
+  {
+    sdp->venc.width = 1920;
+    sdp->venc.height = 1080;
+    sdp->venc.bitrate = 4000;
+    sdp->venc.fps = 30;
+    return 0;
+  }
+  ///////////
+  
+  if(p_cfg->snscnt == 1 && ch != 1)
+  {
     return -1;
-    
+  }
+  else if(p_cfg->snscnt == 2 && ch != 2)  
+  {
+    return -1;
+  }
+
   if(p_cfg->second)
   {
     sdp->audio_shmid = -1;
@@ -138,18 +174,19 @@ int venc_fixed_sdp(int ch, int i, gsf_sdp_t *sdp)
     {
       sdp->venc.width = SECOND_WIDTH(p_cfg->second);
       sdp->venc.height = SECOND_HEIGHT(p_cfg->second);
-      sdp->venc.bitrate = (SECOND_WIDTH(p_cfg->second)>640)?8000:2000;
+      sdp->venc.bitrate = (SECOND_WIDTH(p_cfg->second)>640)?8000:4000;
       sdp->venc.fps = p_cfg->fps; // fps: venc = vi;
     }
     else // sub
     {
       sdp->venc.width = (SECOND_WIDTH(p_cfg->second)>640)?640:640;
       sdp->venc.height = (SECOND_WIDTH(p_cfg->second)>640)?360:512;
-      sdp->venc.bitrate = (SECOND_WIDTH(p_cfg->second)>640)?1000:1000;
+      sdp->venc.bitrate = (SECOND_WIDTH(p_cfg->second)>640)?2000:2000;
       sdp->venc.fps = p_cfg->fps; // fps: venc = vi;
     }
     return 0; 
   }
+  
   return -1;
 }
 
@@ -169,10 +206,11 @@ int venc_start(int start)
     printf("stop >>> gsf_mpp_venc_dest()\n");
     gsf_mpp_venc_dest();
   }
-
+  
   for(i = 0; i < p_venc_ini->ch_num; i++)
   for(j = 0; j < GSF_CODEC_VENC_NUM; j++)
   {
+    //warning: only one venc[];
     if(!codec_ipc.venc[j].en)
       continue;
 
@@ -193,8 +231,7 @@ int venc_start(int start)
       .u32LowDelay   = codec_ipc.venc[j].lowdelay,
     };
 
-
-    if(p_cfg->second && i == 1)
+    //if(p_cfg->second && i == 1)
     {
       gsf_sdp_t sdp;
       if(venc_fixed_sdp(i, j, &sdp) == 0)
@@ -205,20 +242,38 @@ int venc_start(int start)
       }
     }
     
+    if(channel3 && i == 2)
+    {
+      venc.VpssGrp    = -1;
+      venc.VpssChn    = -1;
+      
+      gsf_sdp_t sdp;
+      if(venc_fixed_sdp(i, j, &sdp) == 0)
+      {
+        venc.enSize = PIC_WIDTH(sdp.venc.width, sdp.venc.height);
+        venc.u32BitRate = sdp.venc.bitrate;
+        venc.u32FrameRate = sdp.venc.fps;
+      }
+    }
+    if(channel3 && i != 2)
+    {  
+      continue; // only one channel3;
+    }
+
     int w = 0, h = 0;
     PIC_WH(venc.enSize, w, h);
       
     if(!start)
     {
       ret = gsf_mpp_venc_stop(&venc);
-      printf("stop >>> ch:%d, st:%d, enSize:%d[%dx%d], ret:%d\n"
-            , i, j, venc.enSize, w, h, ret);
+      printf("stop >>> ch:%d, st:%d, VencChn:%d, enSize:%d[%dx%d], ret:%d\n"
+            , i, j, venc.VencChn, venc.enSize, w, h, ret);
     }
     else
     {
       ret = gsf_mpp_venc_start(&venc);
-      printf("start >>> ch:%d, st:%d, enSize:%d[%dx%d], ret:%d\n"
-            , i, j, venc.enSize, w, h, ret);
+      printf("start >>> ch:%d, st:%d, VencChn:%d, enSize:%d[%dx%d], ret:%d\n"
+            , i, j, venc.VencChn, venc.enSize, w, h, ret);
     }
     
     if(!start)
@@ -282,27 +337,71 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
     }
     else 
     {
-      cfg->lane = 0; cfg->wdr = 0; cfg->res = 4; cfg->fps = 30;
+      cfg->lane = (cfg->snscnt>2)?2:0; cfg->wdr = 0; cfg->res = 4; cfg->fps = 30;
+      cfg->slave = (cfg->snscnt>2)?1:0;
     }
 
+    if(stitch)
+    {
+      rgn_ini->ch_num = 1; rgn_ini->st_num = 1;
+      venc_ini->ch_num = 1; venc_ini->st_num = 1;
+      VPSS_BIND_VI(0, 0, 0, 0, 1, (1-1), PIC_1080P, PIC_640P);
+      return;
+    }
+    
     rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
     venc_ini->ch_num = 1; venc_ini->st_num = 2;
     VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_2688x1520, PIC_640P);
-    if(cfg->snscnt > 1)
+    for(int i = 1; i < cfg->snscnt; i++)
     {
-        VPSS_BIND_VI(1, 1, 0, 1, 1, 1, PIC_2688x1520, PIC_640P);
+      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_2688x1520, PIC_640P);
+      rgn_ini->ch_num++;
+      venc_ini->ch_num++;
+    }
+    if(/*cfg->snscnt == 1 &&*/ cfg->second)
+    {
+      if(cfg->snscnt == 2 && cfg->second == 1) // 2 sensor + bt1120;
+      {
+        cfg->lane = 2;
+        cfg->slave = 0;
+      }
+      VPSS_BIND_VI(venc_ini->ch_num, venc_ini->ch_num, 0, venc_ini->ch_num, 1, 1, SECOND_HIRES(cfg->second), SECOND_LORES(cfg->second));
+      rgn_ini->ch_num++;
+      venc_ini->ch_num++;
+    }
+    return;
+  }
+  
+  if(strstr(cfg->snsname, "imx568"))
+  {
+    // imx568-0-0-5-30
+    if(strstr(cfg->type, "3516d500"))
+    {
+      cfg->lane = (cfg->snscnt>1)?2:0; cfg->wdr = 0; cfg->res = 5; cfg->fps = 30;
+    }
+    else 
+    {
+      cfg->lane = (cfg->snscnt>2)?2:0; cfg->wdr = 0; cfg->res = 5; cfg->fps = 30;
+    }
+        
+    rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
+    venc_ini->ch_num = 1; venc_ini->st_num = 2;
+    VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_2448x2048, PIC_640P);
+    for(int i = 1; i < cfg->snscnt; i++)
+    {
+        VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_2448x2048, PIC_640P);
         rgn_ini->ch_num++;
         venc_ini->ch_num++;
     } 
-    else if(cfg->second)
+    if(cfg->snscnt == 1 && cfg->second)
     {
         rgn_ini->ch_num = venc_ini->ch_num = 2;
         VPSS_BIND_VI(1, 1, 0, 1, 1, 1, SECOND_HIRES(cfg->second), SECOND_LORES(cfg->second));
-    }    
+    }
     return;
   }
-   
-  if(strstr(cfg->snsname, "imx482"))
+  
+  if(strstr(cfg->snsname, "imx482") || strstr(cfg->snsname, "imx662"))
   {
     cfg->lane = 0; cfg->wdr = 0; cfg->res = 2; cfg->fps = (codec_ipc.vi.fps>0)?codec_ipc.vi.fps:30;
     rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
@@ -332,6 +431,16 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
     else 
     {
       cfg->lane = 0; cfg->wdr = codec_ipc.vi.wdr; cfg->res = strstr(cfg->snsname, "imx335")?5:2; cfg->fps = 30;
+      //cfg->lane = 2;
+    }
+    
+    
+    if(stitch)
+    {
+      rgn_ini->ch_num = 1; rgn_ini->st_num = 1;
+      venc_ini->ch_num = 1; venc_ini->st_num = 1;
+      VPSS_BIND_VI(0, 0, 0, 0, 1, (1-1), PIC_1080P, PIC_640P);
+      return;
     }
     
     rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
@@ -376,6 +485,31 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
     return;
   }
   
+  if(strstr(cfg->snsname, "yuv422th640"))
+  {
+    cfg->lane = 0; cfg->wdr = 0; cfg->res = 0; cfg->fps = 60;
+    
+    if(stitch)
+    {
+      rgn_ini->ch_num = 1; rgn_ini->st_num = 1;
+      venc_ini->ch_num = 1; venc_ini->st_num = 1;
+      VPSS_BIND_VI(0, 0, 0, 0, 1, (1-1), PIC_1080P, PIC_640P);
+      return;
+    }
+    
+    rgn_ini->ch_num = 4; rgn_ini->st_num = 1;
+    venc_ini->ch_num = 4; venc_ini->st_num = 1;
+    
+    //4CH-th640
+    VPSS_BIND_VI(0, 3, 0, 0, 1, (1-1), PIC_512P, PIC_512P);
+    VPSS_BIND_VI(1, 4, 0, 1, 1, (1-1), PIC_512P, PIC_512P);
+    VPSS_BIND_VI(2, 5, 0, 2, 1, (1-1), PIC_512P, PIC_512P);
+    VPSS_BIND_VI(3, 6, 0, 3, 1, (1-1), PIC_512P, PIC_512P);
+    
+    return;
+  }
+  
+  
   if(strstr(cfg->snsname, "yuv422cam"))
   {
     cfg->lane = 0; cfg->wdr = 0; cfg->res = 2; cfg->fps = 60;
@@ -398,8 +532,6 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
     }
     return;
   }
-  
-  
   
   if(strstr(cfg->snsname, "imx586"))
   {
@@ -425,6 +557,28 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
     }
     return;
   }
+  
+  if(strstr(cfg->snsname, "pts911"))
+  {
+    cfg->lane = 0; cfg->wdr = 0; cfg->res = 1; cfg->fps = 24;
+    rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
+    venc_ini->ch_num = 1; venc_ini->st_num = 2;
+    VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_1280X800, PIC_640P);
+    if(cfg->snscnt > 1)
+    {
+        VPSS_BIND_VI(1, 1, 0, 1, 1, 1, PIC_1280X800, PIC_640P);
+        rgn_ini->ch_num++;
+        venc_ini->ch_num++;
+    }
+    else if(cfg->second)
+    {
+        rgn_ini->ch_num = venc_ini->ch_num = 2;
+        rgn_ini->st_num = venc_ini->st_num = 2;
+        VPSS_BIND_VI(1, 1, 0, 1, 1, 1, SECOND_HIRES(cfg->second), SECOND_LORES(cfg->second));
+    }
+    return;
+  }
+  
   
   // os08a20-2-0-2-30
   if(codec_ipc.vi.res==2)
@@ -452,7 +606,13 @@ void mpp_ini_3519d(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
   cfg->lane = 0; cfg->wdr = codec_ipc.vi.wdr; cfg->res = 8; cfg->fps = (codec_ipc.vi.fps>0)?codec_ipc.vi.fps:30;
   rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
   venc_ini->ch_num = 1; venc_ini->st_num = 2;
+  
+  #if 1 //maohw
   VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_3840x2160, PIC_640P);
+  #else
+  VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_3840x2160, PIC_1080P);
+  //vpss[0].enable[2]= 1; vpss[0].enSize[2]= PIC_640P;
+  #endif
   if(cfg->snscnt > 1)
   {
       // os08a20-0-0-8-30
@@ -504,6 +664,7 @@ int scene_start(void)
         gsf_mpp_isp_ctl(i, GSF_MPP_ISP_CTL_LDCI, &_img->ldci);
         gsf_mpp_isp_ctl(i, GSF_MPP_ISP_CTL_3DNR, &_img->_3dnr);
         gsf_mpp_isp_ctl(i, GSF_MPP_ISP_CTL_LDC, &_img->ldc);
+        gsf_mpp_isp_ctl(i, GSF_MPP_ISP_CTL_DIS, &_img->dis);
       }
       else 
       {
@@ -546,7 +707,7 @@ int mpp_start(gsf_bsp_def_t *def)
     strcpy(cfg.snsname, def->board.sensor[0]);
     cfg.snscnt = def->board.snscnt;
     cfg.dis = codec_ipc.vi.dis;
-    avs = codec_ipc.vi.avs;
+    stitch = codec_ipc.vi.avs;
 
     do{
       #if defined(GSF_CPU_3519d)
@@ -580,23 +741,30 @@ int mpp_start(gsf_bsp_def_t *def)
 
     gsf_mpp_cfg(home_path, &cfg);
     
-    lens_ini.ch_num = 1;  // lens number;
+    lens_ini.ch_num = 1; // lens number;
     strncpy(lens_ini.sns, cfg.snsname, sizeof(lens_ini.sns)-1);
     strncpy(lens_ini.lens, "LENS-NAME", sizeof(lens_ini.lens)-1);
     gsf_lens_init(&lens_ini);
 
     // vi start;
-    printf("vi.lowdelay:%d, aiisp:%d\n", codec_ipc.vi.lowdelay, cfg.aiisp);
+    printf("vi.lowdelay:%d, aiisp:%d, venc_ini.ch_num:%d\n", codec_ipc.vi.lowdelay, cfg.aiisp, venc_ini.ch_num);
     gsf_mpp_vi_t vi = {
         .bLowDelay = codec_ipc.vi.lowdelay,//HI_TRUE,//HI_FALSE,
         .u32SupplementConfig = 0,
-        .venc_pic_size = {PIC_3840x2160, PIC_1080P},
+        .stStitchGrpAttr = {0}, // hi_vi_stitch_grp_attr
+        .venc_pic_size = {PIC_3840x2160, PIC_1080P}, //vpss_chn_attr
     };
 
     //re-set vpss output size;
-    vi.venc_pic_size[0] = p_vpss[0].enSize[0];
-    vi.venc_pic_size[1] = p_vpss[0].enSize[1];
-      
+    vi.venc_pic_size[0] = p_vpss[0].enSize[0]; //vpss_chn_attr
+    vi.venc_pic_size[1] = p_vpss[0].enSize[1]; //vpss_chn_attr
+    
+    if(stitch)
+    {
+      vi.stStitchGrpAttr.stitch_en = HI_TRUE;
+      vi.stStitchGrpAttr.pipe_num = strstr(cfg.snsname, "imx664")?3:4;
+    }
+    
     gsf_mpp_vi_start(&vi);
     
     #if 1 //maohw
@@ -620,6 +788,12 @@ int mpp_start(gsf_bsp_def_t *def)
     }
     
     scene_start();
+    
+    if(channel3)
+    {
+      rgn_ini.ch_num++;
+      venc_ini.ch_num++;
+    }
     
     //internal-init rgn, venc;
     gsf_rgn_init(&rgn_ini);
@@ -687,12 +861,18 @@ int vo_start()
       
       int ly = VO_LAYOUT_1MUX;
 
-      ly = (p_cfg->second || avs == 1)?VO_LAYOUT_2MUX:p_cfg->snscnt;
+      ly = (p_cfg->second)?VO_LAYOUT_2MUX:p_cfg->snscnt;
       
       //for AHD;
       ly = (sync == HI_VO_OUT_USER)?VO_LAYOUT_4MUX: //ahd_dvr;
            (sync == HI_VO_OUT_1080P30)?VO_LAYOUT_1MUX://ahd_cam;
            ly;
+      
+      if(stitch)
+      {
+        //stitch layout;
+        ly = VO_LAYOUT_1X2;
+      }
       
       gsf_mpp_vo_layout(VOLAYER_HD0, ly, NULL);
       vo_ly_set(ly);
@@ -705,6 +885,10 @@ int vo_start()
       
       if(ly == VO_LAYOUT_2MUX)
       {
+	  	#if 1 //left-right;
+        gsf_mpp_vo_src_t src1 = {1, 0};
+        gsf_mpp_vo_bind(VOLAYER_HD0, 1, &src1);
+        
         //win1;
         if(p_cfg->second)
     	  {
@@ -717,10 +901,22 @@ int vo_start()
           }
           gsf_mpp_vo_aspect(VOLAYER_HD0, 1, &rect);
         }
+        #else //one on one;
         gsf_mpp_vo_src_t src1 = {1, 0};
         gsf_mpp_vo_bind(VOLAYER_HD0, 1, &src1);
+        
+        if(p_cfg->second)
+        {
+          RECT_S vo_0 = {0, 0, 1920, 1080};
+          gsf_mpp_vo_rect(VOLAYER_HD0, 0, &vo_0, 0); // vo_0 for sensor; 
+          
+          //RECT_S vo_1 = {1920-640-100, 1080-512-100, 640, 512};
+          RECT_S vo_1 = {(1920-1280)/2, (1080-720)/2, 1280, 720};
+          gsf_mpp_vo_rect(VOLAYER_HD0, 1, &vo_1, 1); // vo_1 for lwir;
+        }
+		  #endif
       }
-      else if(ly > VO_LAYOUT_2MUX)
+      else if(ly > VO_LAYOUT_2MUX && ly < VO_LAYOUT_2X4)
       for(int i = 1; i < ly; i++)
       {
         //win1 win2 win3;
@@ -785,7 +981,8 @@ int main_start(gsf_bsp_def_t *bsp_def)
       gsf_mpp_isp_ctl(0, GSF_MPP_ISP_CTL_FLIP, &flip);
     }
     //dis;
-    if(codec_ipc.vi.dis)
+    //if(0)
+	  if(codec_ipc.vi.dis)
     {
       gsf_mpp_img_dis_t dis;
       
@@ -795,7 +992,7 @@ int main_start(gsf_bsp_def_t *bsp_def)
         dis.enMode = HI_DIS_MODE_6_DOF_GME;
         dis.enPdtType = HI_DIS_PDT_TYPE_RECORDER;
       }
-      else 
+      else if(codec_ipc.vi.dis == 2)
       {
         dis.bEnable = 1;
         dis.enMode = HI_DIS_MODE_GYRO;
@@ -863,10 +1060,10 @@ int main_loop(void)
           {
             struct timespec ts1, ts2;  
             clock_gettime(CLOCK_MONOTONIC, &ts1);
-
-            gsf_mpp_vpss_send(1, 0, &stFrameInfo, 0);
+            #if 1
+            gsf_mpp_vpss_send(1+0, 0, &stFrameInfo, 0);
             gsf_mpp_uvc_release(0, 0, &stFrameInfo);
-            
+            #endif       
             clock_gettime(CLOCK_MONOTONIC, &ts2);
             int cost = (ts2.tv_sec*1000 + ts2.tv_nsec/1000000) - (ts1.tv_sec*1000 + ts1.tv_nsec/1000000);
             if(cost > 20)

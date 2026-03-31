@@ -34,10 +34,12 @@
 #include "mpp.h"
 #include "mppex.h"
 
-//#include "mppex.h"
+#define SNAP4VPSS_VENC_CHN  (HI_VENC_MAX_CHN_NUM-2)
+
 int CHIP_3519D  = 0;
 int g_dis_enable = 0;
-static hi_s32 aiisp = 0;
+static void * dl = NULL;
+static hi_s32 aiisp = 0, fisheye = 0, rotation = 1;
 static int _audio_init = 0;
 static gsf_mpp_aenc_t _adec, _aenc = {
   .AeChn = 0,
@@ -57,9 +59,12 @@ typedef struct {
   char* obj;
 }SAMPLE_MPP_SENSOR_T;
 
-int SENSOR_TYPE;
+int SENSOR_CNT;
 int SENSOR0_TYPE;
 int SENSOR1_TYPE;
+int SENSOR2_TYPE;
+int SENSOR3_TYPE;
+
 hi_isp_sns_obj* SENSOR_OBJ = NULL;
 hi_isp_sns_obj *sample_comm_isp_get_sns_obj(sample_sns_type sns_type)
 {
@@ -70,34 +75,47 @@ hi_isp_sns_obj *sample_comm_isp_get_sns_obj(sample_sns_type sns_type)
   return SENSOR_OBJ;
 }
 
-static SAMPLE_MPP_SENSOR_T libsns[SNS_TYPE_BUTT] = {
+static SAMPLE_MPP_SENSOR_T libsns_master[SNS_TYPE_BUTT] = {
     {OV_OS08A20_MIPI_8M_30FPS_12BIT,         "os08a20-0-0-8-30",  "libsns_os08a20.so",    "g_sns_os08a20_obj"},
     {OV_OS08A20_MIPI_8M_30FPS_10BIT_WDR2TO1, "os08a20-0-1-8-30",  "libsns_os08a20.so",    "g_sns_os08a20_obj"},
     {OV_OS04A10_MIPI_4M_30FPS_12BIT,         "os04a10-0-0-4-30",  "libsns_os04a10.so",    "g_sns_os04a10_obj"},
     {OV_OS04A10_MIPI_4M_30FPS_12BIT_WDR2TO1, "os04a10-0-1-4-30",  "libsns_os04a10.so",    "g_sns_os04a10_obj"},
-    {SONY_IMX347_SLAVE_MIPI_4M_30FPS_12BIT,  "imx347-0-0-4-30",  "libsns_imx347_slave.so","g_sns_imx347_slave_obj"},
     {SONY_IMX515_MIPI_8M_30FPS_12BIT,        "imx515-0-0-8-30",  "libsns_imx515.so",      "g_sns_imx515_obj"},
     {OV_OS04A10_2L_MIPI_4M_30FPS_10BIT,      "os04a10-2-0-4-30", "libsns_os04a10_2l.so",  "g_sns_os04a10_2l_obj"},
     {OV_OS08A20_2L_MIPI_2M_30FPS_10BIT,      "os08a20-2-0-2-30", "libsns_os08a20_2l.so",  "g_sns_os08a20_2l_obj"},
     {SONY_IMX482_MIPI_2M_30FPS_12BIT,        "imx482-0-0-2-30",  "libsns_imx482.so",      "g_sns_imx482_obj"},
+    {SONY_IMX662_MIPI_2M_30FPS_12BIT,        "imx662-0-0-2-30",  "libsns_imx662.so",      "g_sns_imx662_obj"},
     {SONY_IMX664_MIPI_4M_30FPS_12BIT,        "imx664-0-0-4-30",  "libsns_imx664.so",      "g_sns_imx664_obj"},
     {SONY_IMX335_MIPI_5M_30FPS_12BIT,        "imx335-0-0-5-30",  "libsns_imx335.so",      "g_sns_imx335_obj"},
     {SONY_IMX335_2L_MIPI_5M_30FPS_10BIT,     "imx335-2-0-5-30",  "libsns_imx335.so",      "g_sns_imx335_obj"},
     {SONY_IMX335_MIPI_5M_30FPS_10BIT_WDR2TO1,"imx335-0-1-5-30",  "libsns_imx335.so",      "g_sns_imx335_obj"},
     {SONY_IMX327_MIPI_2M_30FPS_12BIT,        "imx327-0-0-2-30",  "libsns_imx327.so",      "g_sns_imx327_obj"},
     {SONY_IMX327_2L_MIPI_2M_30FPS_12BIT,     "imx327-2-0-2-30",  "libsns_imx327.so",      "g_sns_imx327_obj"},
-    {MIPI_YUV422_2M_30FPS_8BIT_6CH,          "yuv422-0-0-2-30",   NULL,                    NULL}, //mipi_ad_6ch
+    {MIPI_YUV422_2M_30FPS_8BIT_6CH,          "yuv422ahd-0-0-2-30",   NULL,                 NULL}, //mipi_ad_6ch
+    {MIPI_YUV422_2M_60FPS_8BIT,              "yuv422cam-0-0-2-60",   NULL,                 NULL}, //mipi_camera
+    {MIPI_YUV422_0M_60FPS_8BIT,              "yuv422th640-0-0-0-60", NULL,                 NULL}, //yuv422th640
+    {MIPI_YUV422_1M_30FPS_8BIT,              "yuv422th1280-0-0-1-30",NULL,                 NULL}, //yuv422th1280
     {SONY_IMX586_MIPI_48M_5FPS_12BIT,        "imx586-0-0-48-5",  "libsns_imx586.so",      "g_sns_imx586_obj"},
     {SONY_IMX586_MIPI_8M_30FPS_12BIT,        "imx586-0-0-8-30",  "libsns_imx586.so",      "g_sns_imx586_obj"},
     {SONY_IMX678_MIPI_8M_30FPS_12BIT,        "imx678-0-0-8-30",  "libsns_imx678.so",      "g_sns_imx678_obj"},
     {SONY_IMX678_MIPI_8M_30FPS_10BIT_WDR2TO1,"imx678-0-1-8-30",  "libsns_imx678.so",      "g_sns_imx678_obj"},
     {SONY_IMX678_MIPI_8M_60FPS_10BIT,        "imx678-0-0-8-60",  "libsns_imx678.so",      "g_sns_imx678_obj"},
+    {SONY_IMX678_MIPI_2M_25FPS_12BIT,        "imx678-2-0-2-25",  "libsns_imx678.so",      "g_sns_imx678_obj"},
     {SONY_IMX585_MIPI_8M_30FPS_12BIT,        "imx585-0-0-8-30",  "libsns_imx585.so",      "g_sns_imx585_obj"},
+    {SONY_IMX568_MIPI_5M_30FPS_12BIT,        "imx568-0-0-5-30",  "libsns_imx568.so",      "g_sns_imx568_obj"},
+  };
+
+static SAMPLE_MPP_SENSOR_T libsns_slave[SNS_TYPE_BUTT] = {
+    {SONY_IMX347_SLAVE_MIPI_4M_30FPS_12BIT,  "imx347-0-0-4-30",  "libsns_imx347_slave.so", "g_sns_imx347_slave_obj"},
+    {OV_OS04A10_SLAVE_MIPI_4M_30FPS_12BIT,   "os04a10-0-0-4-30", "libsns_os04a10_slave.so","g_sns_os04a10_slave_obj"}, 
+    {SONY_IMX664_2L_MIPI_4M_30FPS_12BIT,     "imx664-2-0-4-30",  "libsns_imx664.so",        "g_sns_imx664_obj"},
   };
 
 
-static SAMPLE_MPP_SENSOR_T* SAMPLE_MPP_SERSOR_GET(char* name)
+static SAMPLE_MPP_SENSOR_T* SAMPLE_MPP_SERSOR_GET(char* name, int slave)
 {
+  SAMPLE_MPP_SENSOR_T *libsns = (slave)?libsns_slave:libsns_master;
+  
   for(int i = 0; i < SNS_TYPE_BUTT; i++)
   {
     if(libsns[i].name && strstr(libsns[i].name, name))
@@ -109,10 +127,6 @@ static SAMPLE_MPP_SENSOR_T* SAMPLE_MPP_SERSOR_GET(char* name)
   printf("unknow name:[%s]\n", name);
   return NULL;
 }
-
-
-static void * dl = NULL;
-static int snscnt = 0;
 
 hi_void sample_venc_handle_sig2(hi_s32 signo)
 {
@@ -140,12 +154,13 @@ hi_void sample_venc_handle_sig2(hi_s32 signo)
         if(hi_mpi_sys_get_bind_by_dst(&dst_chn, &src_chn) == 0)
         {
           sample_comm_vpss_un_bind_venc(src_chn.dev_id, src_chn.chn_id, dst_chn.chn_id);
-          sample_comm_venc_stop(dst_chn.chn_id);
-        }  
+          //sample_comm_venc_stop(dst_chn.chn_id);
+        } 
+        sample_comm_venc_stop(dst_chn.chn_id);//stop unbound venc;
       }
       
       //stop snap channel;
-      sample_comm_venc_stop(HI_VENC_MAX_CHN_NUM-2);
+      sample_comm_venc_stop(SNAP4VPSS_VENC_CHN);
       
       extern hi_s32 sample_audio_ai_aenc_stop(gsf_mpp_aenc_t *aenc);
       ret = sample_audio_ai_aenc_stop(&_aenc);
@@ -181,14 +196,14 @@ int gsf_mpp_cfg_sns(char *path, gsf_mpp_cfg_t *cfg)
   g_dis_enable = cfg->dis;
   mppex_hook_sns(cfg);
   
-  SAMPLE_MPP_SENSOR_T* sns = SAMPLE_MPP_SERSOR_GET(snsstr);
+  SAMPLE_MPP_SENSOR_T* sns = SAMPLE_MPP_SERSOR_GET(snsstr, cfg->slave);
   if(!sns)
   {
     printf("%s => snsstr:%s, unknow.\n", __func__, snsstr);
     return -1;
   } 
   
-  snscnt = cfg->snscnt;
+  SENSOR_CNT = cfg->snscnt;
   aiisp = cfg->aiisp;
   CHIP_3519D = strstr(cfg->type, "3519d500")?1:0;
     
@@ -197,31 +212,38 @@ int gsf_mpp_cfg_sns(char *path, gsf_mpp_cfg_t *cfg)
   
   
   //hook sensor name;
-  if(strstr(cfg->snsname, "imx664") || strstr(cfg->snsname, "imx482") 
-    || strstr(cfg->snsname, "imx335") || strstr(cfg->snsname, "imx327")
+  if(strstr(cfg->snsname, "imx664") || strstr(cfg->snsname, "imx482") || strstr(cfg->snsname, "imx662")
+    || strstr(cfg->snsname, "imx335") || strstr(cfg->snsname, "imx327") || strstr(cfg->snsname, "imx568")
     || strstr(cfg->snsname, "imx678") || strstr(cfg->snsname, "imx585"))  //37.125MHz
     strncpy(snsname, "imx515", sizeof(snsname)-1);
   else if(strstr(cfg->snsname, "imx586"))             //24MHz
     strncpy(snsname, "os08a20", sizeof(snsname)-1);
-  else if(strstr(cfg->snsname, "yuv422"))
+  else if(strstr(cfg->snsname, "yuv422ahd") || strstr(cfg->snsname, "yuv422cam")
+    || strstr(cfg->snsname, "yuv422th640") || strstr(cfg->snsname, "yuv422th1280"))
     strncpy(snsname, "mipi_ad", sizeof(snsname)-1);
   else 
     strncpy(snsname, cfg->snsname, sizeof(snsname)-1);
     
   sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor0 %s", path, snsname);
 
-  for(i = 1; i < snscnt; i++)
+  for(i = 1; i < SENSOR_CNT; i++)
   {
     sprintf(loadstr, "%s -sensor%d %s", loadstr, i, snsname);
   }
-  
-  if(cfg->snscnt == 1)
+
+  if(cfg->second == 1)
   {
-    if(cfg->second == 1)
+    if(SENSOR_CNT == 1)
       sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor1 %s -sensor3 bt1120", path, snsname);
-    else if(cfg->second >= 2 && cfg->second <= 9) //bt656-board need open sensor1 clk;
-      //sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor0 %s -sensor1 bt656", path, snsname);
+    else 
+      sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor1 bt1120 -sensor2 %s -sensor3 %s", path, snsname, snsname);
+  }
+  else if(cfg->second >= 2 && cfg->second <= 9)
+  {  
+    if(SENSOR_CNT == 1) //bt656-board need open sensor1 clk;
       sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor0 %s -sensor1 %s", path, snsname, snsname);
+    else  
+      sprintf(loadstr, "%s/ko/load3519dv500 -i -sensor2 %s -sensor3 %s", path, snsname, snsname);
   }
   
   sprintf(loadstr, "%s -vo_intf bt656", loadstr);
@@ -229,36 +251,43 @@ int gsf_mpp_cfg_sns(char *path, gsf_mpp_cfg_t *cfg)
   printf("%s => loadstr: %s\n", __func__, loadstr);
   system(loadstr);
   
-  SENSOR_TYPE = SENSOR0_TYPE = SENSOR1_TYPE = sns->type;
+  SENSOR0_TYPE = SENSOR1_TYPE = SENSOR2_TYPE = SENSOR3_TYPE = sns->type;
   
-  if(cfg->second && cfg->snscnt == 1)
+  if(cfg->second)
   {
-    SENSOR1_TYPE = (cfg->second == 1)?BT1120_YUV422_2M_60FPS_8BIT:
-                   (cfg->second == 2)?BT656_YUV422_0M_60FPS_8BIT: //GD-640x520
-                   (cfg->second == 3)?BT656_YUV422_0M_60FPS_8BIT: //GZ-720x576
-                   (cfg->second == 4)?SENSOR1_TYPE://sns0==sns1;  //UVC-
-                   (cfg->second == 5)?BT656_YUV422_0M_60FPS_8BIT: //640x512
-                   (cfg->second == 9)?BT601_YUV422_0M_60FPS_8BIT:
-                                      SENSOR1_TYPE;//sns0==sns1;
+    int second_sensor = (cfg->second == 1)?BT1120_YUV422_2M_60FPS_8BIT://BT1120
+                        (cfg->second == 2)?BT656_YUV422_0M_60FPS_8BIT: //GD-640x520
+                        (cfg->second == 3)?BT656_YUV422_0M_60FPS_8BIT: //GZ-720x576
+                        (cfg->second == 4)?SENSOR0_TYPE://sns0==sns1;  //UVC-
+                        (cfg->second == 5)?BT656_YUV422_0M_60FPS_8BIT: //640x512
+                        (cfg->second == 9)?BT601_YUV422_0M_60FPS_8BIT:
+                                          SENSOR0_TYPE;//sns0==sns1;
+    if(SENSOR_CNT == 1)
+      SENSOR1_TYPE = second_sensor;
+    else 
+      SENSOR2_TYPE = second_sensor;
+                                      
     if(cfg->second == 5) //CUSTOM
     {
+      //you can add CUSTOM cfg for bt656 input;
       mppex_bt656_cfg_t bt656 = {
-        .data_seq = HI_VI_DATA_SEQ_UYVY, //HI_VI_DATA_SEQ_YUYV
-        .width = 640,       // sensor-w: 720
-        .height = 512,      // sensor-h: 576
-        .crop.x = 0,        // valid-x: (720-640)/2
-        .crop.y = 0,        // valid-y: (576-512)/2
-        .crop.width = 640,  // valid-w: 640
-        .crop.height = 512, // valid-h: 512
+        .data_seq = HI_VI_DATA_SEQ_YUYV, //HI_VI_DATA_SEQ_UYVY, //
+        .width      = 1280, //640, // sensor-w: 720
+        .height     = 1024, //512, // sensor-h: 576
+        .crop.x     = 0,    //0,   // valid-x: (720-640)/2
+        .crop.y     = 0,    //0,   // valid-y: (576-512)/2
+        .crop.width = 1280, //640, // valid-w: 640
+        .crop.height= 1024, //512, // valid-h: 512
       };
       mppex_comm_bt656_cfg(&bt656);
     }
     else if (cfg->second == 4) //USB-UVC
     {
-      mppex_comm_uvc_uyvy = 0; // 0: yuyv, 1: uyvy;
+        mppex_comm_uvc_uyvy = (access("/app/uvc_uyvy", 0) < 0)?0:1; // 0: yuyv, 1: uyvy;
+        printf("mppex_comm_uvc_uyvy: %d\n", mppex_comm_uvc_uyvy);
     }
   }
-
+  
   if(dl)
   {
     dlclose(dl);
@@ -281,8 +310,8 @@ int gsf_mpp_cfg_sns(char *path, gsf_mpp_cfg_t *cfg)
         goto __err;
     }
   }
-  printf("%s => snsstr:%s, sensor_type:%d, load:%s\n"
-        , __func__, snsstr, SENSOR_TYPE, sns->lib?:"");
+  printf("%s => snsstr:%s, sensor0:%d, sensor1:%d, sensor2:%d, load:%s\n"
+        , __func__, snsstr, SENSOR0_TYPE, SENSOR1_TYPE, SENSOR2_TYPE, sns->lib?:"");
   
   signal(SIGINT, sample_venc_handle_sig2);
   signal(SIGTERM, sample_venc_handle_sig2);
@@ -316,6 +345,9 @@ static hi_s32 model_id[2] = {-1, -1};
 static hi_aibnr_model model_info_aibnr = {0};
 static hi_aidrc_model model_info_aidrc = {0};
 
+//stitch;
+static hi_vi_stitch_grp_attr vi_stitch_grp_attr = {0};
+
 //SAMPLE_COMM_VI_StartVi
 int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
 {
@@ -323,6 +355,7 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
   hi_size enc_size[CHN_NUM_MAX];
   hi_size vi_size = {0};
   hi_pic_size pic_size[CHN_NUM_MAX] = {PIC_1080P, PIC_D1_NTSC};
+  vi_stitch_grp_attr = vi->stStitchGrpAttr;
 
   for (i = 0; i < CHN_NUM_MAX; i++) {
       //check venc_pic_size;
@@ -336,12 +369,12 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
   }
 
   // get vi param
-  for(i = 0; i < snscnt; i++)
+  for(i = 0; i < SENSOR_CNT; i++)
   {
     sample_comm_vi_get_default_vi_cfg(SENSOR0_TYPE, &vi_cfg[i]);
-    vi_cfg[i].mipi_info.divide_mode = ((CHIP_3519D)||(snscnt>1))?LANE_DIVIDE_MODE_1:LANE_DIVIDE_MODE_0;
+    vi_cfg[i].mipi_info.divide_mode = ((CHIP_3519D)||(SENSOR_CNT>1))?LANE_DIVIDE_MODE_1:LANE_DIVIDE_MODE_0;
 
-    if(i != 0)
+    if(SENSOR_CNT == 2 && i != 0)
     {
       const hi_vi_dev vi_dev = CHIP_3519D?2:1; /* dev2 for sensor1 */
       const hi_vi_pipe vi_pipe = 1; /* dev2 bind pipe1 */
@@ -360,10 +393,34 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
     }
   }
   
-  mppex_comm_vi_bb(snscnt, vi_cfg);
+  mppex_comm_vi_bb(SENSOR_CNT, vi, vi_cfg);
   
   // get vpss param
   vi_size = vi_cfg[0].dev_info.dev_attr.in_size;
+  
+  if(vi_stitch_grp_attr.stitch_en)
+  {
+    //stitch_init;
+    extern int sample_stitch_init(void);
+    sample_stitch_init();
+    
+    //re-set vpss0 output vb size;
+    enc_size[0].width = mppex_comm_stitch_out_w();
+    enc_size[0].height = mppex_comm_stitch_out_h();
+    
+    for(i = 0; i < vi_stitch_grp_attr.pipe_num; i++)
+    {  
+      vi_cfg[i].pipe_info[0].chn_info[0].chn_attr.video_format = HI_VIDEO_FORMAT_LINEAR;
+      vi_cfg[i].pipe_info[0].chn_info[0].chn_attr.compress_mode = HI_COMPRESS_MODE_NONE;
+    }
+  }
+  
+  if(fisheye)
+  {
+    vi_cfg[0].pipe_info[0].chn_info[0].chn_attr.video_format = HI_VIDEO_FORMAT_LINEAR;
+    vi_cfg[0].pipe_info[0].chn_info[0].chn_attr.compress_mode = HI_COMPRESS_MODE_NONE;
+  }  
+  
   extern hi_void get_default_vpss_chn_attr(hi_size *vi_size, hi_size enc_size[], hi_s32 len,
             sample_venc_vpss_chn_attr *vpss_chan_attr);
   get_default_vpss_chn_attr(&vi_size, enc_size, CHN_NUM_MAX, &vpss_param);
@@ -393,13 +450,15 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
   
   if(aiisp)
   {
+    extern hi_s32 sample_aiisp_skip_vb(hi_s32 en);
     sample_aiisp_skip_vb(1);//vb init at sample_venc_sys_init()
   }
  
   //vpss_online 
   //ret = sample_comm_vi_set_vi_vpss_mode(HI_VI_ONLINE_VPSS_ONLINE, HI_VI_AIISP_MODE_DEFAULT);
+  mppex_comm_vi_mm(SENSOR_CNT, vi, vi_cfg);
  
-  for(i = 0; i < snscnt; i++)
+  for(i = 0; i < SENSOR_CNT; i++)
   {
     extern hi_s32 sample_ai3dnr_start_vi(hi_vi_pipe vi_pipe, const sample_vi_cfg *vi_cfg, hi_size *in_size, hi_ai3dnr_net_type net_type);
 
@@ -443,7 +502,7 @@ int gsf_mpp_vi_start(gsf_mpp_vi_t *vi)
     }
   }
   
-  ret = mppex_comm_vi_ee(snscnt, vi_cfg);
+  ret = mppex_comm_vi_ee(SENSOR_CNT, vi, vi_cfg);
   if (ret != HI_SUCCESS) {
       sample_print("Init VI i:%d ret:%#x!\n", i, ret);
       goto EXIT_SYS_STOP;
@@ -460,7 +519,7 @@ int gsf_mpp_vi_stop()
 {
   int ret = 0, i = 0;
   
-  for(i = 0; i < snscnt; i++)
+  for(i = 0; i < SENSOR_CNT; i++)
   {
     if(aiisp)
     {
@@ -486,7 +545,7 @@ int gsf_mpp_vi_stop()
     }  
   }
 
-  mppex_comm_vi_tt(snscnt, vi_cfg);
+  mppex_comm_vi_tt(SENSOR_CNT, vi_cfg);
 
   sample_comm_sys_exit();
   return ret;
@@ -559,6 +618,14 @@ int gsf_mpp_vpss_start(gsf_mpp_vpss_t *vpss)
     
   vi_pipe = mppex_comm_vpss_bb(vpss, &vpss_param);
   
+  if(fisheye)
+  {
+    hi_vpss_grp_cfg grp_cfg;
+    hi_mpi_vpss_get_grp_cfg(vpss_grp, &grp_cfg);
+    grp_cfg.max_out_rgn_num = OT_FISHEYE_MAX_RGN_NUM;
+    hi_mpi_vpss_set_grp_cfg(vpss_grp, &grp_cfg);
+  }
+  
   extern hi_s32 sample_venc_vpss_init(hi_vpss_grp vpss_grp, sample_venc_vpss_chn_attr *vpss_chan_cfg);
   if ((ret = sample_venc_vpss_init(vpss_grp, &vpss_param)) != HI_SUCCESS) {
       sample_print("Init VPSS err for %#x!\n", ret);
@@ -566,14 +633,66 @@ int gsf_mpp_vpss_start(gsf_mpp_vpss_t *vpss)
   }
   
   if(vi_pipe >= 0)
-  {  
-    if ((ret = sample_comm_vi_bind_vpss(vi_pipe, vi_chn, vpss_grp, 0)) != HI_SUCCESS) 
+  { 
+    if(vi_stitch_grp_attr.stitch_en && vpss->VpssGrp == 0)
     {
+      int pipe_offset = (SENSOR0_TYPE == SONY_IMX664_2L_MIPI_4M_30FPS_12BIT)?0:3;
+      for(int pipe = 0; pipe < vi_stitch_grp_attr.pipe_num; pipe++)
+      {
+        ret = sample_comm_vi_bind_vpss(pipe+pipe_offset, 0, vpss_grp, pipe);
+      }
+    }
+    else
+    {    
+      if ((ret = sample_comm_vi_bind_vpss(vi_pipe, vi_chn, vpss_grp, 0)) != HI_SUCCESS) 
+      {
         sample_print("VI Bind VPSS err for %#x!\n", ret);
         goto EXIT_VPSS_STOP;
+      }
     }
   }
   mppex_comm_vpss_ee(vpss, &vpss_param);
+  
+  if(fisheye)
+  {
+
+    extern td_s32 hi_mpi_vi_set_chn_rotation(ot_vi_pipe vi_pipe, ot_vi_chn vi_chn, const ot_rotation_attr* rotation_attr);
+    
+    hi_size in_size = {0};
+    sample_comm_vi_get_size_by_sns_type(SENSOR0_TYPE, &in_size);
+    
+    hi_gdc_param gdc_param;
+    gdc_param.cell_size = HI_LUT_CELL_SIZE_16;
+    gdc_param.in_size.width = in_size.width;
+    gdc_param.in_size.height= in_size.height;
+    printf("hi_mpi_vpss_set_grp_gdc_param in_size.width:%d, height:%d\n", in_size.width, in_size.height);
+    ret = hi_mpi_vpss_set_grp_gdc_param(vpss_grp, &gdc_param);
+    if (ret != HI_SUCCESS) {
+        sample_print("hi_mpi_vpss_set_grp_gdc_param(grp:%d) failed with %#x!\n", vpss_grp, ret);
+    }
+    
+    hi_fisheye_correction_attr correction_attr;
+    extern hi_void sample_fisheye_get_180_and_2_normal_correction_attr(hi_fisheye_correction_attr *correction_attr);
+    sample_fisheye_get_180_and_2_normal_correction_attr(&correction_attr);
+    if(rotation)
+    {  
+      correction_attr.fisheye_attr.fisheye_rgn_attr[0].view_mode = HI_FISHEYE_VIEW_MODE_NORM;
+    }
+    ret = hi_mpi_vpss_set_grp_fisheye(vpss_grp, &correction_attr);
+    sample_print("hi_mpi_vpss_set_grp_fisheye(grp:%d) ret: %#x!\n", vpss_grp, ret);
+    
+    if(rotation)
+    {
+      hi_rotation_attr rotation_attr;
+      rotation_attr.enable = HI_TRUE;
+      rotation_attr.rotation_type = OT_ROTATION_ANG_FIXED;
+      rotation_attr.rotation_fixed = OT_ROTATION_90;
+
+      ret = hi_mpi_vpss_set_chn_rotation(vpss_grp, 0, &rotation_attr);
+      sample_print("hi_mpi_vpss_set_chn_rotation(grp:%d) ret: %#x!\n", vpss_grp, ret);
+    }
+  }
+  
 EXIT:
   return ret;
   
@@ -588,9 +707,23 @@ int gsf_mpp_vpss_stop(gsf_mpp_vpss_t *vpss)
   hi_vi_pipe vi_pipe  = vpss->ViPipe;
   hi_vi_chn vi_chn    = vpss->ViChn;
   hi_vpss_grp vpss_grp= vpss->VpssGrp;
+    
   if(vi_pipe >= 0)
   {
-    sample_comm_vi_un_bind_vpss(vi_pipe, vi_chn, vpss_grp, 0);
+    if(vi_stitch_grp_attr.stitch_en && vpss->VpssGrp == 0)
+    {
+      mppex_comm_vpss_tt(vpss, &vpss_param);
+      
+      int pipe_offset = (SENSOR0_TYPE == SONY_IMX664_2L_MIPI_4M_30FPS_12BIT)?0:3;
+      for(int pipe = 0; pipe < vi_stitch_grp_attr.pipe_num; pipe++)
+      {
+        ret = sample_comm_vi_un_bind_vpss(pipe+pipe_offset, 0, vpss_grp, pipe);
+      }
+    }
+    else 
+    {
+      sample_comm_vi_un_bind_vpss(vi_pipe, vi_chn, vpss_grp, 0);
+    }
   }
   sample_venc_vpss_deinit(vpss_grp, &vpss_param);
   return ret;
@@ -657,14 +790,14 @@ int gsf_mpp_vpss_ctl(int VpssGrp, int id, void *args)
       }
       break;
     case  GSF_MPP_VPCH_CTL_ENABLE:
-      ret = hi_mpi_vpss_enable_chn(VpssGrp, (int)args);
+      ret = hi_mpi_vpss_enable_chn(VpssGrp, (int)(uintptr_t)args);
       if(ret)
-        printf("GSF_MPP_VPCH_CTL_ENABLE VpssGrp:%d,VpssChn:%d err 0x%x\n", VpssGrp, (int)args, ret); 
+        printf("GSF_MPP_VPCH_CTL_ENABLE VpssGrp:%d,VpssChn:%d err 0x%x\n", VpssGrp, (int)(uintptr_t)args, ret); 
       break;
     case GSF_MPP_VPCH_CTL_DISABLE:
-      ret = hi_mpi_vpss_disable_chn(VpssGrp, (int)args);
+      ret = hi_mpi_vpss_disable_chn(VpssGrp, (int)(uintptr_t)args);
       if(ret)
-        printf("GSF_MPP_VPCH_CTL_DISABLE VpssGrp:%d,VpssChn:%d err 0x%x\n", VpssGrp, (int)args, ret); 
+        printf("GSF_MPP_VPCH_CTL_DISABLE VpssGrp:%d,VpssChn:%d err 0x%x\n", VpssGrp, (int)(uintptr_t)args, ret); 
       break;
     case GSF_MPP_VPSS_CTL_ATTR:
       ret = hi_mpi_vpss_get_grp_attr(VpssGrp, (hi_vpss_grp_attr*)args);
@@ -682,6 +815,11 @@ int gsf_mpp_venc_start(gsf_mpp_venc_t *venc)
   int ret = 0;
   hi_venc_gop_mode gop_mode;
   hi_venc_gop_attr gop_attr;
+  
+  if(venc->VencChn < SNAP4VPSS_VENC_CHN)
+  {  
+    mppex_hook_venc_bb(venc);
+  }
   
   hi_vpss_grp vpss_grp = venc->VpssGrp;
   hi_vpss_chn vpss_chn = venc->VpssChn;
@@ -708,6 +846,33 @@ int gsf_mpp_venc_start(gsf_mpp_venc_t *venc)
   venc_create_param.gop                       = venc->u32Gop; /* 30 is a number */
   venc_create_param.bitrate                   = venc->u32BitRate;
   
+  if(vi_stitch_grp_attr.stitch_en && (venc_chn == 0 || venc_chn == 2))
+  {
+    //re-set venc_chn0 size;   
+    venc_create_param.size = -1; //skip sample_comm_sys_get_pic_size(en_size, venc_size);
+    venc_create_param.venc_size.width = mppex_comm_stitch_out_w();
+    venc_create_param.venc_size.height = mppex_comm_stitch_out_h();
+    
+    if(venc_create_param.venc_size.width > 6144 && (venc_create_param.type != HI_PT_MJPEG && venc_create_param.type != HI_PT_JPEG))
+    {
+      venc_create_param.venc_size.height = HI_ALIGN_DOWN((int)(6144.0/venc_create_param.venc_size.width * venc_create_param.venc_size.height), 2);
+      venc_create_param.venc_size.width = 6144;
+      sample_print("stitch CHANGE venc resolution to [%d x %d ]\n", venc_create_param.venc_size.width, venc_create_param.venc_size.height);
+    }
+    else 
+    {
+      sample_print("stitch KEEP venc resolution to [%d x %d ]\n", venc_create_param.venc_size.width, venc_create_param.venc_size.height);
+    }
+  }
+  else if (fisheye && rotation)
+  {
+    hi_size vi_size = {0};
+    sample_comm_vi_get_size_by_sns_type(SENSOR0_TYPE, &vi_size); 
+    venc_create_param.size = -1; 
+    venc_create_param.venc_size.width = vi_size.height;
+    venc_create_param.venc_size.height= vi_size.width;
+  }
+  
   /* encode h.264 */
   ret = sample_comm_venc_start(venc_chn, &venc_create_param);
   if (ret != HI_SUCCESS) {
@@ -721,13 +886,17 @@ int gsf_mpp_venc_start(gsf_mpp_venc_t *venc)
         goto EXIT_VENC_H264_STOP;
     }
   }
-  if(vpss_grp == 0)
+  if(vpss_grp == 0 /*|| vpss_grp == -1*/)
   {
     extern hi_s32 sample_venc_set_debreath_effect(hi_venc_chn venc_chn, hi_bool enable);
     sample_venc_set_debreath_effect(venc_chn, HI_TRUE);
   }
   printf("%s => venc_chn:%d, type:%d, vpss_grp:%d, vpss_chn:%d\n", __func__, venc_chn, venc_create_param.type, vpss_grp, vpss_chn);
   
+  if(venc->VencChn < SNAP4VPSS_VENC_CHN)
+  {  
+    mppex_hook_venc_ee(venc);
+  }
   return ret;
 
 EXIT_VENC_H264_STOP:
@@ -866,22 +1035,12 @@ int gsf_mpp_venc_snap(VENC_CHN VencChn, HI_U32 SnapCnt, int(*cb)(int i, VENC_STR
   return sample_comm_venc_snap_processCB(VencChn, SnapCnt, cb, u);
 }
 
-
-int gsf_mpp_venc_snap4vpss(int VpssGrp, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u)
-{ 
-  printf("gsf_mpp_vpss_get VpssGrp:%d, SnapCnt:%d\n", VpssGrp, SnapCnt);
- 
-  hi_video_frame_info stFrameInfo;
-  if(gsf_mpp_vpss_get(VpssGrp, 0, &stFrameInfo, 100) < 0)
-  {
-    return -1;
-  }
-  printf("gsf_mpp_vpss_get ok VpssGrp:%d\n", VpssGrp);
-    
+static int gsf_mpp_snap4frameInfo(hi_video_frame_info *pstFrameInfo, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u)
+{
   static int VeChn = 0;
   if(!VeChn)
   {
-    VeChn = (HI_VENC_MAX_CHN_NUM-2);
+    VeChn = SNAP4VPSS_VENC_CHN;
     static gsf_mpp_venc_t venc;
     venc.VencChn    = VeChn;
     venc.srcModId   = HI_ID_VPSS;
@@ -906,20 +1065,65 @@ int gsf_mpp_venc_snap4vpss(int VpssGrp, HI_U32 SnapCnt, int(*cb)(int i, VENC_STR
   
   static td_u64 __pts = 0;
   static td_u32 __time_ref = 0;         
-  stFrameInfo.video_frame.pts = __pts+= 33000;
-  stFrameInfo.video_frame.time_ref = __time_ref+=2;
-  stFrameInfo.video_frame.frame_flag = 0;
+  pstFrameInfo->video_frame.pts = __pts+= 33000;
+  pstFrameInfo->video_frame.time_ref = __time_ref+=2;
+  pstFrameInfo->video_frame.frame_flag = 0;
   
   snap_user_cb_t user = {cb, u};
   gsf_mpp_venc_get_t vget;
   vget.cb = snap_venc_cb;
   vget.u = &user;
-  if(gsf_mpp_venc_send(VeChn, &stFrameInfo, 100, &vget) < 0)
+  if(gsf_mpp_venc_send(VeChn, pstFrameInfo, 100, &vget) < 0)
   {
     printf("gsf_mpp_venc_send error VeChn:%d\n", VeChn);
   }
+  return 0;
+}
+
+int gsf_mpp_venc_snap4vpss(int VpssGrp, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u)
+{ 
+  printf("gsf_mpp_vpss_get VpssGrp:%d, SnapCnt:%d\n", VpssGrp, SnapCnt);
+ 
+  hi_video_frame_info stFrameInfo;
+  if(gsf_mpp_vpss_get(VpssGrp, 0, &stFrameInfo, 100) < 0)
+  {
+    return -1;
+  }
+  printf("gsf_mpp_vpss_get ok VpssGrp:%d\n", VpssGrp);
+  gsf_mpp_snap4frameInfo(&stFrameInfo, cb, u);
   
   return gsf_mpp_vpss_release(VpssGrp, 0, &stFrameInfo);
+}
+
+int gsf_mpp_venc_snap4vi(int ViPipe, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u)
+{ 
+  printf("gsf_mpp_vi_get ViPipe:%d, SnapCnt:%d\n", ViPipe, SnapCnt);
+ 
+  static int vi_change_attr[4] = {0};
+  
+  if(vi_change_attr[ViPipe] == 0)
+  {
+    vi_change_attr[ViPipe] = 1;
+    
+    hi_vi_chn_attr chn_attr;
+    if (hi_mpi_vi_get_chn_attr(ViPipe, 0, &chn_attr) != HI_SUCCESS) {
+        return -1;
+    }
+    chn_attr.depth = 1;
+    if (hi_mpi_vi_set_chn_attr(ViPipe, 0, &chn_attr) != HI_SUCCESS) {
+        return -1;
+    }
+  }
+  
+  hi_video_frame_info stFrameInfo;
+  if(gsf_mpp_vi_get(ViPipe, 0, &stFrameInfo, 100) < 0)
+  {
+    return -1;
+  }
+  printf("gsf_mpp_vi_get ok ViPipe:%d\n", ViPipe);
+  gsf_mpp_snap4frameInfo(&stFrameInfo, cb, u);
+  
+  return gsf_mpp_vi_release(ViPipe, 0, &stFrameInfo);
 }
 
 static int g_scenebEnable = 0;
@@ -929,7 +1133,7 @@ int gsf_mpp_scene_start(char *path, int scenemode)
     char _path[256] = {0};
     
     strncpy(_path, path, sizeof(_path)-1);
-    strcat(_path, (snscnt==2)?".2ch":"");
+    strcat(_path, (SENSOR_CNT==2)?".2ch":"");
     
     char *dir_name = dirname(_path);
     if(aiisp)
@@ -945,7 +1149,7 @@ int gsf_mpp_scene_start(char *path, int scenemode)
       extern hi_wdr_mode sample_comm_vi_get_wdr_mode_by_sns_type(sample_sns_type sns_type);
       if(sample_comm_vi_get_wdr_mode_by_sns_type(sns_type) == HI_WDR_MODE_NONE)
       {  
-        for(int i = 0; i < snscnt; i++)
+        for(int i = 0; i < SENSOR_CNT; i++)
         {
         	extern hi_s32 sample_aibnr_set_blc(hi_vi_pipe vi_pipe, sample_sns_type sns_type);
           extern hi_s32 sample_aibnr_start(hi_vi_pipe vi_pipe, hi_size in_size, hi_aibnr_model *model_info, hi_s32 *model_id, hi_s32 model_size, sample_aibnr_param *aibnr_param);
@@ -963,7 +1167,7 @@ int gsf_mpp_scene_start(char *path, int scenemode)
       }
       else 
       {
-        for(int i = 0; i < snscnt; i++)
+        for(int i = 0; i < SENSOR_CNT; i++)
         {
           extern hi_s32 sample_aidrc_start(hi_vi_pipe vi_pipe, hi_size in_size, hi_aidrc_model *model_info, hi_s32 *model_id, sample_aidrc_param *aidrc_param);
           
@@ -1024,7 +1228,7 @@ int gsf_mpp_scene_stop()
     extern hi_wdr_mode sample_comm_vi_get_wdr_mode_by_sns_type(sample_sns_type sns_type);
     if(sample_comm_vi_get_wdr_mode_by_sns_type(SENSOR0_TYPE) == HI_WDR_MODE_NONE)
     {  
-      for(int i = 0; i < snscnt; i++)
+      for(int i = 0; i < SENSOR_CNT; i++)
       {
         extern hi_s32 sample_aibnr_stop(hi_vi_pipe vi_pipe, hi_aibnr_model *model, hi_s32 *model_id, hi_s32 model_size);
         
@@ -1036,7 +1240,7 @@ int gsf_mpp_scene_stop()
     }
     else 
     {
-      for(int i = 0; i < snscnt; i++)
+      for(int i = 0; i < SENSOR_CNT; i++)
       {
         extern hi_s32 sample_aidrc_stop(hi_vi_pipe vi_pipe, hi_aidrc_model *model, hi_s32 *model_id, hi_s32 model_size);
         
@@ -1065,7 +1269,7 @@ int gsf_mpp_isp_ctl(int ViPipe, int id, void *args)
   switch(id)
   {
   case GSF_MPP_ISP_CTL_IR:
-    switch((int)args)
+    switch((int)(uintptr_t)args)
     {
       case 0:
           isp_ir_mode((gsf_mpp_ir_t*)NULL);
@@ -1188,8 +1392,14 @@ int gsf_mpp_isp_ctl(int ViPipe, int id, void *args)
   case GSF_MPP_ISP_CTL_LDC:
     {
       gsf_mpp_img_ldc_t *ldc = (gsf_mpp_img_ldc_t*)args;
-
       hi_ldc_attr ldc_attr;
+      
+      if(fisheye)
+      {
+        break;
+      }
+      
+      ret = hi_mpi_vpss_get_grp_ldc(0, &ldc_attr);
 
       ldc_attr.enable                       = ldc->bEnable;
       ldc_attr.ldc_version                  = HI_LDC_V1;
@@ -1202,7 +1412,7 @@ int gsf_mpp_isp_ctl(int ViPipe, int id, void *args)
       ldc_attr.ldc_v1_attr.distortion_ratio = ldc->s32DistortionRatio; /* 500: distortion ratio */
 
       ret = hi_mpi_vpss_set_grp_ldc(0, &ldc_attr);
-      printf("vi_set_chn_ldc_attr ret:0x%x, ViPipe:%d, bEnable:%d, s32DistortionRatio:%d\n"
+      printf("hi_mpi_vpss_set_grp_ldc ret:0x%x, ViPipe:%d, bEnable:%d, s32DistortionRatio:%d\n"
           , ret, ViPipe, ldc_attr.enable, ldc_attr.ldc_v1_attr.distortion_ratio);
     }
     break;
@@ -1219,12 +1429,15 @@ int gsf_mpp_isp_ctl(int ViPipe, int id, void *args)
         //disable;
         if(dis->bEnable == 0)
         {
-            hi_dis_attr dis_attr = {0};
-            ret = hi_mpi_vi_get_chn_dis_attr(ViPipe, 0, &dis_attr);
-            if (ret == HI_SUCCESS)
+            for(int i = 0; i < SENSOR_CNT; i++)
             {
-              dis_attr.enable = HI_FALSE;
-              ret = hi_mpi_vi_set_chn_dis_attr(ViPipe, 0, &dis_attr);
+              hi_dis_attr dis_attr = {0};
+              ret = hi_mpi_vi_get_chn_dis_attr(i, 0, &dis_attr);
+              if (ret == HI_SUCCESS)
+              {
+                dis_attr.enable = HI_FALSE;
+                ret = hi_mpi_vi_set_chn_dis_attr(i, 0, &dis_attr);
+              }
             }
             return HI_SUCCESS;
         }
@@ -1266,8 +1479,11 @@ int gsf_mpp_isp_ctl(int ViPipe, int id, void *args)
         }
         else 
         {
-          extern hi_s32 sample_dis_gme_enable(sample_sns_type sns_type, int gme_type);          
-          ret = sample_dis_gme_enable((ViPipe==0)?SENSOR0_TYPE:SENSOR1_TYPE, dis_mode);
+          extern hi_s32 sample_dis_gme_enable(hi_vi_pipe vi_pipe, int gme_type);
+          for(int i = 0; i < SENSOR_CNT; i++)
+          {
+            ret = sample_dis_gme_enable(i, dis_mode);
+          }
           printf("sample_dis_gme_enable() dis_mode:%d, ret:%d\n", dis_mode, ret);
         }
     }
@@ -1460,7 +1676,7 @@ typedef struct {
 
 typedef struct {
   hi_rect     rect;
-  VO_LAYOUT_E cnt;
+  VO_LAYOUT_E layout;
   vo_ch_t    chs[HI_VO_MAX_CHN_NUM];
   // ...
 }vo_layer_t;
@@ -1562,6 +1778,7 @@ int gsf_mpp_vo_start(int vodev, VO_INTF_TYPE_E type, VO_INTF_SYNC_E sync, int wb
             , vodev, vo_mng[vodev].intf, vo_mng[vodev].sync
             , vo_mng[vodev].vo_config.image_size.width, vo_mng[vodev].vo_config.image_size.height);         
             
+    mppex_hook_vo(sync);
     return ret;
 END3:
     sample_comm_sys_exit();
@@ -1577,6 +1794,8 @@ int gsf_mpp_vo_stop(int vodev)
 }
 
 //创建视频层显示通道;
+extern sample_vo_wnd_info g_vo_sample_wnd_info[VO_MODE_BUTT];
+#define LAYOUT2CNT(layout) g_vo_sample_wnd_info[layout].wnd_num
 int gsf_mpp_vo_layout(int volayer, VO_LAYOUT_E layout, RECT_S *rect)
 {
   int i = 0;
@@ -1585,14 +1804,14 @@ int gsf_mpp_vo_layout(int volayer, VO_LAYOUT_E layout, RECT_S *rect)
    
   vo_mng_t *vdev = &vo_mng[layer2vdev[volayer]];
   
-  if(vdev->layer[volayer].cnt == layout)
+  if(vdev->layer[volayer].layout == layout)
   {
     return 0;
   }
   
   pthread_mutex_lock(&vdev->lock);
-  
-  for(i = 0; i < vdev->layer[volayer].cnt; i++)
+  printf("old layout:%d, win_num:%d\n", vdev->layer[volayer].layout, LAYOUT2CNT(vdev->layer[volayer].layout));
+  for(i = 0; i < LAYOUT2CNT(vdev->layer[volayer].layout); i++)
   {
     // unbind vo && vpss && vdec;
     sample_comm_vpss_un_bind_vo(vdev->layer[volayer].chs[i].src_grp, vdev->layer[volayer].chs[i].src_chn, volayer, i);
@@ -1607,16 +1826,17 @@ int gsf_mpp_vo_layout(int volayer, VO_LAYOUT_E layout, RECT_S *rect)
     vdev->layer[volayer].chs[i].width = vdev->layer[volayer].chs[i].height = 0;
   }
 
-  if(vdev->layer[volayer].cnt)
-    sample_comm_vo_stop_chn(volayer, vdev->layer[volayer].cnt);
+  if(LAYOUT2CNT(vdev->layer[volayer].layout))
+    sample_comm_vo_stop_chn(volayer, LAYOUT2CNT(vdev->layer[volayer].layout));
   
   if(vdev->layer[volayer].chs[i].src_type >= VO_SRC_VDVP)
   {
-    sample_comm_vdec_stop(vdev->layer[volayer].cnt);
+    sample_comm_vdec_stop(LAYOUT2CNT(vdev->layer[volayer].layout));
   }
-  
-  vdev->layer[volayer].cnt = layout;
-  sample_comm_vo_start_chn(volayer, vdev->layer[volayer].cnt);
+
+  vdev->layer[volayer].layout = layout;
+  sample_comm_vo_start_chn(volayer, vdev->layer[volayer].layout);
+  printf("new layout:%d, win_num:%d\n", vdev->layer[volayer].layout, LAYOUT2CNT(vdev->layer[volayer].layout));
   
   pthread_mutex_unlock(&vdev->lock);
 
@@ -1632,7 +1852,7 @@ int gsf_mpp_vo_vsend(int volayer, int ch, int flag, char *data, gsf_mpp_frm_attr
   
   vo_mng_t *vdev = &vo_mng[layer2vdev[volayer]];
   
-  if(vdev->layer[volayer].cnt == VO_LAYOUT_NONE
+  if(vdev->layer[volayer].layout == VO_LAYOUT_NONE
     || attr->width == 0
     || attr->height == 0
     || (attr->etype != PT_H264 

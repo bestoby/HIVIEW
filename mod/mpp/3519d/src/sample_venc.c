@@ -19,7 +19,10 @@
 //#define VI_VB_YUV_CNT (6*4) //maohw
 //#define VPSS_VB_YUV_CNT (8*2) //maohw
 
-#define VI_VB_YUV_CNT (6*2) //maohw
+//#define VI_VB_YUV_CNT (6*2) //maohw
+//#define VPSS_VB_YUV_CNT (8*1) //maohw
+
+#define VI_VB_YUV_CNT (6*3) //maohw stitch;
 #define VPSS_VB_YUV_CNT (8*1) //maohw
 
 
@@ -32,6 +35,7 @@
 #define GRP_NUM_MAX 2
 #define MAX_WATERMARK_LEN 128
 
+extern int SENSOR_CNT;
 #if 0 //maohw mvto sample_comm.h;
 #define CHN_NUM_MAX 2
 typedef struct {
@@ -314,7 +318,8 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
     }
 
     pic_buf_attr.width = size->width;
-    pic_buf_attr.height = size->height + ((SENSOR0_TYPE == MIPI_YUV422_2M_30FPS_8BIT_6CH)?20:0); //for ahd;
+    pic_buf_attr.height = size->height + ((SENSOR0_TYPE == MIPI_YUV422_2M_30FPS_8BIT_6CH || SENSOR0_TYPE == MIPI_YUV422_2M_60FPS_8BIT 
+                                        || SENSOR0_TYPE == MIPI_YUV422_0M_60FPS_8BIT || SENSOR0_TYPE == MIPI_YUV422_1M_30FPS_8BIT)?20:0); //for ahd;
     pic_buf_attr.align = HI_DEFAULT_ALIGN;
     pic_buf_attr.bit_width = HI_DATA_BIT_WIDTH_8;
     pic_buf_attr.pixel_format = format;
@@ -425,7 +430,7 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
     //vpss_online 
     //ret = sample_comm_vi_set_vi_vpss_mode(HI_VI_ONLINE_VPSS_OFFLINE, HI_VI_AIISP_MODE_DEFAULT);
     
-    if(g_dis_enable) //maohw dis enable 3dnr pos;
+    if(g_dis_enable && SENSOR_CNT == 1) //maohw dis enable 3dnr pos;
     {
       hi_mpi_sys_set_3dnr_pos(HI_3DNR_POS_VPSS);
     }
@@ -447,8 +452,10 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
         return ret;
     }
     
-    if(1) //g_dis_enable maohw gyro dis
+    if(g_dis_enable) //g_dis_enable maohw gyro dis
     {
+      if(SENSOR_CNT == 1)
+      {
         hi_vi_pipe vi_pipe = 0;
         hi_isp_nr_attr isp_nr_attr = {0};
         
@@ -465,6 +472,7 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
             sample_print("set nr attr failed.ret:0x%x !\n", ret);
             return HI_FAILURE;
         }
+      }
     }
     return HI_SUCCESS;
 }
@@ -485,8 +493,9 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
     {
       hi_vpss_grp_cfg grp_cfg;
       hi_mpi_vpss_get_grp_cfg(vpss_grp, &grp_cfg);
-      grp_cfg.is_dis_gyro_support = HI_TRUE;
+      grp_cfg.is_dis_gyro_support = (g_dis_enable == 2)?HI_TRUE:HI_FALSE;
       hi_mpi_vpss_set_grp_cfg(vpss_grp, &grp_cfg);
+      printf("vpss_grp:%d, is_dis_gyro_support:%d\n", vpss_grp, grp_cfg.is_dis_gyro_support);
     }
     
     grp_attr.max_width = vpss_chan_cfg->max_size.width;
@@ -525,8 +534,8 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
     
   if(g_dis_enable) //maohw dis enable;
   {
-    if(vpss_grp == 0)
-    {  
+    if(SENSOR_CNT == 1 && vpss_grp == 0)
+    {
       ot_3dnr_attr attr = {0};
       hi_mpi_vpss_get_grp_3dnr_attr(vpss_grp, &attr);
       attr.enable = HI_TRUE;
@@ -542,8 +551,9 @@ static hi_void update_vb_attr(sample_venc_vb_attr *vb_attr, const hi_size *size,
     gdc_param.cell_size = HI_LUT_CELL_SIZE_16;
     if (hi_mpi_vpss_set_grp_gdc_param(vpss_grp, &gdc_param) != HI_SUCCESS) 
     {
-      printf("@@@@@@@@@@ hi_mpi_vpss_set_grp_gdc_param err, vpss_grp:%d\n", vpss_grp);
+      printf("hi_mpi_vpss_set_grp_gdc_param err, vpss_grp:%d\n", vpss_grp);
     }
+    printf("g_dis_enable: %d gdc_param in_size:[%d x %d]\n", g_dis_enable, gdc_param.in_size.width, gdc_param.in_size.height);
   }
     return ret;
 }

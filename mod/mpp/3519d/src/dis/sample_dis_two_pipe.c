@@ -7,6 +7,9 @@
 #include "sample_gyro_dis.h"
 #include "sample_dis_two_pipe.h"
 #endif
+extern hi_s32 sample_dis_ipc_gyro_two_sensor(hi_size *size);
+extern hi_void sample_dis_stop_gyro(hi_void);
+
 
 static sample_vo_cfg g_vo_4mux_cfg = {
     .vo_dev            = SAMPLE_VO_DEV_UHD,

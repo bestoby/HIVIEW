@@ -246,7 +246,7 @@ int lens610_lens_ircut(int ch, int dayNight)
   return 0;
 }
 
-int lens610_uart_write(unsigned char *buf, int size)
+int lens610_uart_write(int ch, unsigned char *buf, int size)
 {
   int ret = 0;
 
@@ -282,7 +282,7 @@ static int af_cb(HI_U32 Fv1, HI_U32 Fv2, HI_U32 Gain, void* uargs)
 
   buf[7] = _dayNight; //²ÊÉ«ÊÇ0 ºÚ°×ÊÇ1
 
-  int ret = gsf_uart_write(buf, 8);
+  int ret = gsf_uart_write(0, buf, 8);
   return 0;
 }
 
@@ -301,12 +301,12 @@ int lens610_lens_start(int ch, char *ttyAMA)
   }  
   else if(_lens_type == LENS_TYPE_SONY)
   {
-    gsf_uart_open(ttyAMA, 9600);
+    gsf_uart_open(0, ttyAMA, 9600);
     return -1;
   }
   else
   {
-    if(gsf_uart_open(ttyAMA, 115200) < 0)
+    if(gsf_uart_open(0, ttyAMA, 115200) < 0)
     {  
       printf("open error ttyAMA:[%s]\n", ttyAMA);
     }
@@ -362,13 +362,13 @@ int lens610_lens_stop(int ch)
   else if(_lens_type == LENS_TYPE_SONY)
   {
     unsigned char buf[6] = {0x81, 0x01, 0x04, 0x07, 0x00, 0xFF};
-    ret = gsf_uart_write(buf, 6);
+    ret = gsf_uart_write(0, buf, 6);
     return 0;
   }
   else 
   {
     unsigned char buf[8] = {0xc5,0x00,0x00,0x00,0x00,0x00,0x00,0x5c}; SUM6(buf);
-    ret = gsf_uart_write(buf, 8);
+    ret = gsf_uart_write(0, buf, 8);
   }
   return 0;
 }
@@ -398,7 +398,7 @@ int lens610_lens_zoom(int ch,  int dir, int speed)
     unsigned char add[6] = {0x81, 0x01, 0x04, 0x07, 0x25, 0xFF}; //buf[4] = 0x20 | (speed&0x0F);
     unsigned char sub[6] = {0x81, 0x01, 0x04, 0x07, 0x35, 0xFF}; //buf[4] = 0x30 | (speed&0x0F);
     unsigned char *buf = (dir)?add:sub;
-    ret = gsf_uart_write(buf, 6);
+    ret = gsf_uart_write(0, buf, 6);
     return 0;
   }
   else 
@@ -407,7 +407,7 @@ int lens610_lens_zoom(int ch,  int dir, int speed)
     unsigned char add[8] = {0xc5,0x00,0x00,0x20,0x00,0x00,0x00,0x5c}; SUM6(add);
     unsigned char sub[8] = {0xc5,0x00,0x00,0x40,0x00,0x00,0x00,0x5c}; SUM6(sub);
     unsigned char *buf = (dir)?add:sub;
-    ret = gsf_uart_write(buf, 8);
+    ret = gsf_uart_write(0, buf, 8);
   }
   return 0;
 }
@@ -429,7 +429,7 @@ int lens610_lens_focus(int ch, int dir, int speed)
     unsigned char add[6] = {0x81, 0x01, 0x04, 0x08, 0x25, 0xFF};
     unsigned char sub[6] = {0x81, 0x01, 0x04, 0x08, 0x35, 0xFF};
     unsigned char *buf = (dir)?add:sub;
-    ret = gsf_uart_write(buf, 6);
+    ret = gsf_uart_write(0, buf, 6);
     return 0;
   }
   else 
@@ -438,7 +438,7 @@ int lens610_lens_focus(int ch, int dir, int speed)
     unsigned char add[8] = {0xc5,0x00,0x01,0x00,0x00,0x00,0x00,0x5c}; SUM6(add);
     unsigned char sub[8] = {0xc5,0x00,0x00,0x80,0x00,0x00,0x00,0x5c}; SUM6(sub);
     unsigned char *buf = (dir)?add:sub;
-    ret = gsf_uart_write(buf, 8);
+    ret = gsf_uart_write(0, buf, 8);
   }
   return 0;
 }
@@ -453,14 +453,14 @@ int lens610_lens_cal(int ch)
   else
   {
     unsigned char buf[8] = {0xc5,0x00,0x00,0x07,0x00,250,0x00,0x5c}; SUM6(buf);
-    int ret = gsf_uart_write(buf, 8);
+    int ret = gsf_uart_write(0, buf, 8);
     usleep(100*1000);
-    ret |= gsf_uart_write(buf, 8);
+    ret |= gsf_uart_write(0, buf, 8);
   }
   return 0;
 }
 
-int lens610_uart_open(char *ttyAMA, int baudrate)
+int lens610_uart_open(int ch, char *ttyAMA, int baudrate)
 {
   if(strstr(ttyAMA, "ttyAMAxx"))
     ;//system("bspmm 0x0102600E0 2; bspmm 0x0102600E4 2;"); //UART3 MUX
@@ -469,7 +469,7 @@ int lens610_uart_open(char *ttyAMA, int baudrate)
     
   if(!ttyAMA || strlen(ttyAMA) < 1)
     return -1;
-  //O_NDELAY blocking read;
+  //blocking read;
   serial_fd = open(ttyAMA, O_RDWR | O_NOCTTY /*| O_NDELAY*/);
   if (serial_fd < 0)
   {
@@ -637,35 +637,35 @@ static int pelco_d_write(char *cmd, int size)
     {
       unsigned char buf[7] = {0xff,0xff,0x00,0x00,0x00,0x00,0x00};
       buf[6] = (buf[1]+buf[2]+buf[3]+buf[4]+buf[5])&0xFF;
-      gsf_uart_write(buf, sizeof(buf));
+      gsf_uart_write(0, buf, sizeof(buf));
     }  
     break;
     case GSF_PTZ_UP:
     {
       unsigned char buf[7] = {0xff,0xff,0x00,0x08,0x00,0x31,0x00};
       buf[6] = (buf[1]+buf[2]+buf[3]+buf[4]+buf[5])&0xFF;
-      gsf_uart_write(buf, sizeof(buf));
+      gsf_uart_write(0, buf, sizeof(buf));
     }
     break;    
     case GSF_PTZ_DOWN:
     {
       unsigned char buf[7] = {0xff,0xff,0x00,0x10,0x00,0x31,0x00};
       buf[6] = (buf[1]+buf[2]+buf[3]+buf[4]+buf[5])&0xFF;
-      gsf_uart_write(buf, sizeof(buf));
+      gsf_uart_write(0, buf, sizeof(buf));
     }
     break;  
     case GSF_PTZ_LEFT:
     {
       unsigned char buf[7] = {0xff,0xff,0x00,0x04,0x31,0x00,0x00};
       buf[6] = (buf[1]+buf[2]+buf[3]+buf[4]+buf[5])&0xFF;
-      gsf_uart_write(buf, sizeof(buf));
+      gsf_uart_write(0, buf, sizeof(buf));
     }
     break;    
     case GSF_PTZ_RIGHT:
     {
       unsigned char buf[7] = {0xff,0xff,0x00,0x02,0x31,0x00,0x00};
       buf[6] = (buf[1]+buf[2]+buf[3]+buf[4]+buf[5])&0xFF;
-      gsf_uart_write(buf, sizeof(buf));
+      gsf_uart_write(0, buf, sizeof(buf));
     }
     break;
   }
@@ -678,8 +678,8 @@ int (*gsf_lens_zoom)(int ch,  int dir, int speed) = lens610_lens_zoom;
 int (*gsf_lens_focus)(int ch, int dir, int speed) = lens610_lens_focus;
 int (*gsf_lens_stop)(int ch) = lens610_lens_stop;
 int (*gsf_lens_cal)(int ch) = lens610_lens_cal;
-int (*gsf_uart_open)(char *ttyAMA, int baudrate) = lens610_uart_open;
-int (*gsf_uart_write)(unsigned char *buf, int size) = lens610_uart_write;
+int (*gsf_uart_open)(int ch, char *ttyAMA, int baudrate) = lens610_uart_open;
+int (*gsf_uart_write)(int ch, unsigned char *buf, int size) = lens610_uart_write;
 int (*gsf_lens_init)(gsf_lens_ini_t *ini) = lens610_lens_init;
 int (*gsf_lens_ptz)(int ch, gsf_lens_t *lens) = lens610_lens_ptz;
 

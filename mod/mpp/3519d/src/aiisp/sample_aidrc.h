@@ -1,5 +1,5 @@
 /*
-  Copyright (c), 2001-2022, Shenshu Tech. Co., Ltd.
+  Copyright (c), 2001-2024, Shenshu Tech. Co., Ltd.
  */
 
 #ifndef SAMPLE_AIDRC_H

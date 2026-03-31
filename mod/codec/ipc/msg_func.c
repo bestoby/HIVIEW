@@ -17,6 +17,8 @@
 extern int venc_start(int start);
 extern int vo_res_get(gsf_resolu_t *res);
 extern int vo_ly_get(gsf_layout_t *ly);
+extern int venc_fixed_sdp(int ch, int st, gsf_sdp_t *sdp);
+
 
 static void msg_func_venc(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
 {
@@ -35,6 +37,15 @@ static void msg_func_venc(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
   {
     gsf_venc_t *venc = (gsf_venc_t*)rsp->data;
     *venc = codec_ipc.venc[req->sid];
+    
+    //fixed w/h;
+    gsf_sdp_t sdp;
+    if(venc_fixed_sdp(req->ch, req->sid, &sdp) == 0)
+    {
+      venc->width = sdp.venc.width;
+      venc->height = sdp.venc.height;
+    }
+    
     rsp->err  = 0;
     rsp->size = sizeof(gsf_venc_t);
   }
@@ -55,14 +66,13 @@ static void msg_func_sdp(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
   sdp->venc = codec_ipc.venc[req->sid];
   sdp->aenc = codec_ipc.aenc;
   
-  extern int venc_fixed_sdp(int ch, int st, gsf_sdp_t *sdp);
   venc_fixed_sdp(req->ch, req->sid, sdp);
 
   sdp->val[0]  = venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[0];
   sdp->val[1]  = venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[1];
   sdp->val[2]  = venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[2];
   sdp->val[3]  = venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[3];
-  printf("sid:%d, type:%d, val.size[%d,%d,%d,%d]\n", req->sid, sdp->venc.type,
+  printf("ch:%d, sid:%d, type:%d, val.size[%d,%d,%d,%d]\n", req->ch, req->sid, sdp->venc.type,
         venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[0].size,
         venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[1].size,
         venc_mgr[req->ch*GSF_CODEC_VENC_NUM + req->sid].val[2].size,
@@ -171,18 +181,24 @@ static void msg_func_snap(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
   printf("ch:%d, sid:%d\n", req->ch, req->sid);
   
   #if defined(GSF_CPU_3519d_6CHN)
-  gsf_mpp_venc_snap4vpss(rsp->ch, 1, snap_cb, rsp);
-  #else
-  if(codec_ipc.venc[GSF_CODEC_SNAP_IDX].en && codec_ipc.venc[GSF_CODEC_SNAP_IDX].type == GSF_ENC_JPEG)
-  {  
-    gsf_mpp_venc_snap(rsp->ch*GSF_CODEC_VENC_NUM+GSF_CODEC_SNAP_IDX, 1, snap_cb, rsp);
-  }
-  else
-  {
-    #if defined(GSF_CPU_3516c)
     gsf_mpp_venc_snap4vpss(rsp->ch, 1, snap_cb, rsp);
-    #endif
-  }
+  #else
+    if(req->sid == 1)
+    {
+      #if defined(GSF_CPU_3519d)
+      gsf_mpp_venc_snap4vi(rsp->ch, 1, snap_cb, rsp);
+      #endif
+    }
+    else if(codec_ipc.venc[GSF_CODEC_SNAP_IDX].en && codec_ipc.venc[GSF_CODEC_SNAP_IDX].type == GSF_ENC_JPEG)
+    {  
+      gsf_mpp_venc_snap(rsp->ch*GSF_CODEC_VENC_NUM+GSF_CODEC_SNAP_IDX, 1, snap_cb, rsp);
+    }
+    else
+    {
+      #if defined(GSF_CPU_3516c) || defined(GSF_CPU_3519d)
+      gsf_mpp_venc_snap4vpss(rsp->ch, 1, snap_cb, rsp);
+      #endif
+    }
   #endif
   return;
 }

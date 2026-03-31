@@ -1,5 +1,5 @@
 /*
-  Copyright (c), 2001-2022, Shenshu Tech. Co., Ltd.
+  Copyright (c), 2001-2024, Shenshu Tech. Co., Ltd.
  */
 #ifndef __SAMPLE_AI3DNR_H__
 #define __SAMPLE_AI3DNR_H__

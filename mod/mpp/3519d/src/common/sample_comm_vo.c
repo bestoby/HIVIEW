@@ -225,7 +225,7 @@ hi_s32 sample_comm_vo_stop_layer(hi_vo_layer vo_layer)
 }
 
 //maohw
-static sample_vo_wnd_info g_vo_sample_wnd_info[VO_MODE_BUTT] = {
+/*maohw static*/ sample_vo_wnd_info g_vo_sample_wnd_info[VO_MODE_BUTT] = {
     [VO_MODE_1MUX  ] = { VO_MODE_1MUX,   1,  1, 0, 0 },
     [VO_MODE_2MUX  ] = { VO_MODE_2MUX,   2,  2, 0, 0 },
     [VO_MODE_4MUX  ] = { VO_MODE_4MUX,   4,  2, 0, 0 },
