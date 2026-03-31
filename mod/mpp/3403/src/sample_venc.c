@@ -11,6 +11,7 @@
 
 #include "sample_comm.h"
 #include "securec.h"
+#include "hi_mpi_isp.h"
 
 #define BIG_STREAM_SIZE     PIC_3840X2160
 #define SMALL_STREAM_SIZE   PIC_1080P
@@ -306,7 +307,7 @@ hi_void get_vb_attr(const hi_size *vi_size, const sample_venc_vpss_chn_attr *vps
         }
     }
 
-    vb_attr->supplement_config = HI_VB_SUPPLEMENT_JPEG_MASK | HI_VB_SUPPLEMENT_BNR_MOT_MASK;
+    vb_attr->supplement_config = HI_VB_SUPPLEMENT_JPEG_MASK | HI_VB_SUPPLEMENT_BNR_MOT_MASK | HI_VB_SUPPLEMENT_MOTION_DATA_MASK;
 }
 
 hi_void get_default_vpss_chn_attr(hi_size *vi_size, hi_size enc_size[], hi_s32 len,
@@ -327,6 +328,7 @@ hi_void get_default_vpss_chn_attr(hi_size *vi_size, hi_size enc_size[], hi_s32 l
     for (i = 0; (i < len) && (i < HI_VPSS_MAX_PHYS_CHN_NUM); i++) {
         vpss_chan_attr->output_size[i].width = enc_size[i].width;
         vpss_chan_attr->output_size[i].height = enc_size[i].height;
+        //maohw
         //vpss_chan_attr->compress_mode[i] = (i == 0) ? HI_COMPRESS_MODE_SEG_COMPACT : HI_COMPRESS_MODE_NONE;
         vpss_chan_attr->compress_mode[i] = HI_COMPRESS_MODE_NONE;
         vpss_chan_attr->enable[i] = HI_TRUE;
@@ -384,6 +386,28 @@ hi_s32 sample_venc_vi_init(sample_vi_cfg *vi_cfg)
         return ret;
     }
 
+    //maohw gyro dis test;
+    if(0)
+    {
+        hi_vi_pipe vi_pipe = 0;
+        hi_isp_nr_attr isp_nr_attr = {0};
+        
+        sample_print("test gyro dis hi_mpi_isp_set_nr_attr(%d) \n", vi_pipe);
+        ret = hi_mpi_isp_get_nr_attr(vi_pipe, &isp_nr_attr);
+        if (ret != HI_SUCCESS) {
+            sample_print("get nr attr failed.ret:0x%x !\n", ret);
+            return HI_FAILURE;
+        }
+
+        isp_nr_attr.en = HI_FALSE;
+        ret = hi_mpi_isp_set_nr_attr(vi_pipe, &isp_nr_attr);
+        if (ret != HI_SUCCESS) {
+            sample_print("set nr attr failed.ret:0x%x !\n", ret);
+            return HI_FAILURE;
+        }
+    }
+
+
     return HI_SUCCESS;
 }
 
@@ -398,10 +422,9 @@ hi_s32 sample_venc_vpss_init(hi_vpss_grp vpss_grp, sample_venc_vpss_chn_attr *vp
     hi_vpss_chn vpss_chn;
     hi_vpss_grp_attr grp_attr = { 0 };
     hi_vpss_chn_attr chn_attr[HI_VPSS_MAX_PHYS_CHN_NUM] = {0};
-
     grp_attr.max_width = vpss_chan_cfg->max_size.width;
     grp_attr.max_height = vpss_chan_cfg->max_size.height;
-    grp_attr.nr_en = HI_TRUE; //maohw HI_FALSE;
+    grp_attr.nr_en = (vpss_chan_cfg->pixel_format == HI_PIXEL_FORMAT_YVU_SEMIPLANAR_422)?HI_FALSE:HI_TRUE;//maohw
     grp_attr.dei_mode = HI_VPSS_DEI_MODE_OFF;
     grp_attr.pixel_format = vpss_chan_cfg->pixel_format;
     grp_attr.frame_rate.src_frame_rate = -1;
@@ -417,9 +440,14 @@ hi_s32 sample_venc_vpss_init(hi_vpss_grp vpss_grp, sample_venc_vpss_chn_attr *vp
             #else
             chn_attr[vpss_chn].chn_mode = (chn_attr[vpss_chn].width==8000)?HI_VPSS_CHN_MODE_AUTO:HI_VPSS_CHN_MODE_USER;
             //chn_attr[vpss_chn].compress_mode = (vpss_chn==0)?HI_COMPRESS_MODE_SEG:vpss_chan_cfg->compress_mode[vpss_chn];
-			chn_attr[vpss_chn].compress_mode = vpss_chan_cfg->compress_mode[vpss_chn];
+			      chn_attr[vpss_chn].compress_mode = vpss_chan_cfg->compress_mode[vpss_chn];
             #endif
-            
+      
+            if(chn_attr[vpss_chn].compress_mode == HI_COMPRESS_MODE_TILE)
+            {
+              chn_attr[vpss_chn].video_format = HI_VIDEO_FORMAT_TILE_16x8;
+            }
+
             chn_attr[vpss_chn].pixel_format = HI_PIXEL_FORMAT_YVU_SEMIPLANAR_420;//vpss_chan_cfg->pixel_format;
             chn_attr[vpss_chn].frame_rate.src_frame_rate = -1;
             chn_attr[vpss_chn].frame_rate.dst_frame_rate = -1;

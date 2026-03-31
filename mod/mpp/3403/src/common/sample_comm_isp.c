@@ -202,6 +202,23 @@ static hi_isp_pub_attr g_isp_pub_attr_imx485_mipi_8m_30fps_wdr3to1 = {
     },
 };
 
+static ot_isp_pub_attr g_isp_pub_attr_oah428_slave_mipi_30fps = {//add by wei OAH428
+    {0, 0, 400, 400},                                            //add by wei OAH428
+    {400, 400},                                                  //add by wei OAH428
+    30,                                                          //add by wei OAH428
+    OT_ISP_BAYER_GBRG,                                           //add by wei OAH428
+    OT_WDR_MODE_NONE,                                            //add by wei OAH428
+    0,                                                           //add by wei OAH428
+    0,                                                           //add by wei OAH428
+    0,                                                           //add by wei OAH428
+    {                                                            //add by wei OAH428
+        0,                                                       //add by wei OAH428
+        {0, 0, 400, 400},                                        //add by wei OAH428
+    },                                                           //add by wei OAH428
+}; 
+
+
+
 hi_s32 sample_comm_isp_get_pub_attr_by_sns(sample_sns_type sns_type, hi_isp_pub_attr *pub_attr)
 {
     switch (sns_type) {
@@ -246,8 +263,8 @@ hi_s32 sample_comm_isp_get_pub_attr_by_sns(sample_sns_type sns_type, hi_isp_pub_
                 &g_isp_pub_attr_imx485_mipi_8m_30fps, sizeof(hi_isp_pub_attr));
             break;
 			
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
             (hi_void)memcpy_s(pub_attr, sizeof(hi_isp_pub_attr),
                 &g_isp_pub_attr_imx334_mipi_8m_30fps, sizeof(ot_isp_pub_attr));
             pub_attr->frame_rate = (sns_type == SONY_IMX334_MIPI_8M_60FPS_12BIT)?60:30;
@@ -257,13 +274,17 @@ hi_s32 sample_comm_isp_get_pub_attr_by_sns(sample_sns_type sns_type, hi_isp_pub_
             (hi_void)memcpy_s(pub_attr, sizeof(hi_isp_pub_attr),
                 &g_isp_pub_attr_imx485_mipi_8m_30fps_wdr3to1, sizeof(hi_isp_pub_attr));
             break;
-
+            
+        case OV_OAH428_MIPI_30FPS_10BIT:                                          //add by wei
+            (td_void)memcpy_s(pub_attr, sizeof(ot_isp_pub_attr),                  //add by wei
+                &g_isp_pub_attr_oah428_slave_mipi_30fps, sizeof(ot_isp_pub_attr));//add by wei
+            break;
         default:
             (hi_void)memcpy_s(pub_attr, sizeof(hi_isp_pub_attr),
                 &g_isp_pub_attr_os08a20_mipi_8m_30fps, sizeof(hi_isp_pub_attr));
             break;
     }
-	mppex_comm_isp_get_pub_attr_by_sns(sns_type, pub_attr);
+	  mppex_comm_isp_get_pub_attr_by_sns(sns_type, pub_attr);
     return HI_SUCCESS;
 }
 #if 0 //maohw
@@ -297,6 +318,8 @@ hi_isp_sns_obj *sample_comm_isp_get_sns_obj(sample_sns_type sns_type)
                 return &g_sns_imx334_obj;
         case SONY_IMX378_MIPI_8M_30FPS_10BIT:
                 return &g_sns_imx378_obj;
+        case OV_OAH428_MIPI_30FPS_10BIT:        //add by wei
+            return &g_sns_oah428_slave_obj;     //add by wei
         default:
             return HI_NULL;
     }

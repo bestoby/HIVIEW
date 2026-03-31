@@ -16,6 +16,7 @@
  *  v BT656_YUV422_0M_60FPS_8BIT
  *  v BT601_YUV422_0M_60FPS_8BIT
  *  v SONY_IMX586_MIPI_48M_5FPS_12BIT
+ *  v SONY_IMX586_MIPI_8M_30FPS_12BIT
  *  v SONY_IMX415_MIPI_8M_30FPS_12BIT
  */
 
@@ -49,6 +50,21 @@ hi_video_frame_info* mppex_comm_vpss_send_bb(int VpssGrp, int VpssGrpPipe, hi_vi
 
 int mppex_comm_uvc_get(int idx, ot_video_frame_info *pstFrameInfo, int s32MilliSec);
 int mppex_comm_uvc_rel(int idx, ot_video_frame_info *pstFrameInfo);
+
+int mppex_comm_vi_bb(int snscnt, gsf_mpp_vi_t *vi, sample_vi_cfg vi_cfg[HI_VI_MAX_DEV_NUM]);
+int mppex_comm_vi_ee(int snscnt, gsf_mpp_vi_t *vi, sample_vi_cfg vi_cfg[HI_VI_MAX_DEV_NUM]);
+
+int mppex_comm_vpss_bb(gsf_mpp_vpss_t *vpss, sample_venc_vpss_chn_attr *vpss_param);
+int mppex_comm_vpss_ee(gsf_mpp_vpss_t *vpss, sample_venc_vpss_chn_attr *vpss_param);
+
+int mppex_hook_venc_bb(gsf_mpp_venc_t *venc);
+int mppex_hook_venc_ee(gsf_mpp_venc_t *venc);
+
+int mppex_comm_avs_bb(void);
+int mppex_comm_avs_ee(void);
+
+int mppex_comm_avs_out_w(void);
+int mppex_comm_avs_out_h(void);
 
 int mppex_hook_sns(gsf_mpp_cfg_t *cfg);
 int mppex_hook_destroy(void);

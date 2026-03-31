@@ -183,6 +183,8 @@ extern "C" {
 
 typedef enum {
     PIC_CIF,     /*352 * 288 */
+    #define HAVE_PIC_400P
+    PIC_400P,    /* 400 * 400 maohw */
     PIC_360P,    /* 640 * 360 */
     #define HAVE_PIC_512P
     PIC_512P,    /* 640 * 512 maohw */
@@ -281,6 +283,7 @@ typedef enum {
     SONY_IMX586_MIPI_48M_5FPS_12BIT,
     SONY_IMX586_MIPI_8M_30FPS_12BIT,
     SONY_IMX415_MIPI_8M_30FPS_12BIT,
+    OV_OAH428_MIPI_30FPS_10BIT,
     SNS_TYPE_BUTT,
 } sample_sns_type;
 
@@ -672,6 +675,7 @@ typedef struct {
     hi_venc_gop_attr gop_attr;
     hi_payload_type type;
     sample_rc rc_mode;
+    hi_u32 bitrate;//maohw;
 } sample_comm_venc_chn_param;
 
 typedef struct {

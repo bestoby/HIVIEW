@@ -1327,6 +1327,13 @@ static hi_s32 sample_comm_venc_h264_param_init(hi_venc_chn_attr *chn_attr, sampl
     chn_attr->venc_attr.h264_attr.frame_buf_ratio = SAMPLE_FRAME_BUF_RATIO_MIN;
     if (rc_mode == SAMPLE_RC_CBR) {
         sample_comm_venc_h264_cbr_param_init(chn_attr, gop, stats_time, frame_rate, size);
+        if(1) //maohw
+        {
+          chn_attr->rc_attr.h264_cbr.src_frame_rate = (frame_rate > 30)?frame_rate:30; //vi
+          chn_attr->rc_attr.h264_cbr.dst_frame_rate = frame_rate;//target
+          if(chn_param->bitrate > 0)
+            chn_attr->rc_attr.h264_cbr.bit_rate = chn_param->bitrate;
+        } 
     } else if (rc_mode == SAMPLE_RC_FIXQP) {
         sample_comm_venc_h264_fixqp_param_init(chn_attr, gop, frame_rate);
     } else if (rc_mode == SAMPLE_RC_VBR) {
@@ -1360,6 +1367,13 @@ static hi_s32 sample_comm_venc_h265_param_init(hi_venc_chn_attr *chn_attr,
     chn_attr->venc_attr.h265_attr.frame_buf_ratio = SAMPLE_FRAME_BUF_RATIO_MIN;
     if (rc_mode == SAMPLE_RC_CBR) {
         sample_comm_venc_h265_cbr_param_init(chn_attr, gop, stats_time, frame_rate, size);
+        if(1) //maohw
+        {
+          chn_attr->rc_attr.h265_cbr.src_frame_rate = (frame_rate > 30)?frame_rate:30; //vi
+          chn_attr->rc_attr.h265_cbr.dst_frame_rate = frame_rate;//target
+          if(chn_param->bitrate > 0)
+            chn_attr->rc_attr.h265_cbr.bit_rate = chn_param->bitrate;
+        }
     } else if (rc_mode == SAMPLE_RC_FIXQP) {
         sample_comm_venc_h265_fixqp_param_init(chn_attr, gop, frame_rate);
     } else if (rc_mode == SAMPLE_RC_VBR) {
@@ -1464,10 +1478,11 @@ hi_s32 sample_comm_venc_create(hi_venc_chn venc_chn, sample_comm_venc_chn_param 
 
     //maohw chn_param->frame_rate = 30; /* 30 is a number */
     //maohw chn_param->gop = 30; /* 30 is a number */
-
-    if (sample_comm_sys_get_pic_size(size, &chn_param->venc_size) != HI_SUCCESS) {
-        sample_print("get picture size failed!\n");
-        return HI_FAILURE;
+    if ((hi_s32)size != -1) { //maohw
+      if (sample_comm_sys_get_pic_size(size, &chn_param->venc_size) != HI_SUCCESS) {
+          sample_print("get picture size failed!\n");
+          return HI_FAILURE;
+      }
     }
 
     /* step 1:  create venc channel */
@@ -1708,7 +1723,7 @@ static pthread_t SnapTask;
 
 void* sample_comm_venc_snap_processTask(void *parm)
 {
-  hi_venc_chn venc_chn = (hi_venc_chn)parm;
+  hi_venc_chn venc_chn = (hi_venc_chn)(uintptr_t)parm;
   
   sample_comm_venc_snap_process(venc_chn, 0xffffffff, 0, 0);
   return NULL;
@@ -1729,7 +1744,7 @@ hi_s32 sample_comm_venc_snap_processCB(hi_venc_chn venc_chn, hi_u32 snap_cnt, in
   if(snap_cnt == 0xffffffff)
   {
     SnapTaskStartFlag = HI_TRUE;
-    ret = pthread_create(&SnapTask, 0, sample_comm_venc_snap_processTask, (void*)venc_chn);
+    ret = pthread_create(&SnapTask, 0, sample_comm_venc_snap_processTask, (void*)(uintptr_t)venc_chn);
   }
   else 
   {
@@ -1811,7 +1826,30 @@ hi_s32 sample_comm_venc_snap_process(hi_venc_chn venc_chn, hi_u32 snap_cnt, hi_b
     hi_s32 ret;
     hi_u32 i;
 
-    #if 1 //maohw add;
+    hi_venc_chn_attr chn_attr;
+    ret = hi_mpi_venc_get_chn_attr(venc_chn, &chn_attr);
+    if(ret == 0 && chn_attr.venc_attr.pic_width >= 8000) //maohw
+    {
+      hi_mpp_chn src_chn;
+      hi_mpp_chn dst_chn;
+      dst_chn.mod_id = HI_ID_VENC;
+      dst_chn.dev_id = 0;
+      dst_chn.chn_id = venc_chn;
+
+      if(hi_mpi_sys_get_bind_by_dst(&dst_chn, &src_chn) == 0)
+      {
+        ret = hi_mpi_vpss_reset_grp(src_chn.dev_id);
+        if (ret != HI_SUCCESS) {
+            sample_print("hi_mpi_vpss_reset_grp faild with%#x!\n", ret);
+        }
+      }
+    }
+   
+    ret = hi_mpi_venc_reset_chn(venc_chn);
+    if (ret != HI_SUCCESS) {
+        sample_print("hi_mpi_venc_reset_chn faild with%#x!\n", ret);
+    }
+    
      /* start recv venc pictures */
     hi_venc_start_param start_param;
     start_param.recv_pic_num = snap_cnt;
@@ -1820,7 +1858,7 @@ hi_s32 sample_comm_venc_snap_process(hi_venc_chn venc_chn, hi_u32 snap_cnt, hi_b
         sample_print("mpi_venc_start_chn faild with%#x!\n", ret);
         return HI_FAILURE;
     }
-    #endif
+ 
 
     /******************************************
      step 4:  recv picture
@@ -1834,7 +1872,7 @@ hi_s32 sample_comm_venc_snap_process(hi_venc_chn venc_chn, hi_u32 snap_cnt, hi_b
     for (i = 0; i < snap_cnt; i++) {
         FD_ZERO(&read_fds);
         FD_SET(venc_fd, &read_fds);
-        timeout_val.tv_sec  = 2; // 10 : 10 seconds
+        timeout_val.tv_sec  = 3; // 10 : 10 seconds
         timeout_val.tv_usec = 0;
         ret = select(venc_fd + 1, &read_fds, NULL, NULL, &timeout_val);
         if (ret < 0) {

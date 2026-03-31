@@ -28,6 +28,7 @@ static hi_mpp_chn g_sample_mpp_chn[] = {
 /* The order of g_sample_pic_size's element must be consistent with the enum value defined in "hi_pic_size". */
 static hi_size g_sample_pic_size[PIC_BUTT] = {
     { 352,  288  },  /* PIC_CIF */
+    { 400,  400  },  /* PIC_400P */
     { 640,  360  },  /* PIC_360P */
     { 640,  512  },  /* PIC_512P maohw */
     { 640,  640  },  /* PIC_640P maohw */

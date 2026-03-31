@@ -44,7 +44,7 @@
 #define IMX347_OB_HEIGHT_END 20
 #define IMX485_OB_HEIGHT_END 20
 #define IMX334_OB_HEIGHT_END 20
-
+#define OAH428_OB_HEIGHT_END 0 //add by wei
 
 typedef struct {
     sample_vi_user_frame_info *user_frame_info;
@@ -61,6 +61,14 @@ ext_data_type_t g_mipi_ext_data_type_os08a20_12bit_8m_nowdr_attr = {
     .ext_data_bit_width = {12, 12, 12},
     .ext_data_type = {0x37, 0x2c, 0x2c}
 };
+
+static ext_data_type_t g_mipi_ext_data_type_oah428_10bit_nowdr_attr = { //add by wei
+    .devno = 0,
+    .num = MIPI_NUM,
+    .ext_data_bit_width = {10, 10, 10},
+    .ext_data_type = {0x37, 0x2c, 0x2c}
+};
+
 
 ext_data_type_t g_mipi_ext_data_type_default_attr = {
     .devno = 0,
@@ -309,6 +317,57 @@ static combo_dev_attr_t g_mipi_8lane_chn0_sensor_imx485_10bit_8m_wdr3to1_attr = 
     }
 };
 
+
+static combo_dev_attr_t g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev0_attr = {  //add by wei
+    .devno = 0, /* dev0 */
+    .input_mode = INPUT_MODE_MIPI,
+    .data_rate  = MIPI_DATA_RATE_X1,
+    .img_rect   = {0, 0, 400, 400},
+    .mipi_attr  = {
+        DATA_TYPE_RAW_10BIT,
+        OT_MIPI_WDR_MODE_NONE,
+        {0, 2, -1, -1, -1, -1, -1, -1}
+    }
+};
+
+static combo_dev_attr_t g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev1_attr = {  //add by wei
+    .devno = 1, /* dev1 */
+    .input_mode = INPUT_MODE_MIPI,
+    .data_rate  = MIPI_DATA_RATE_X1,
+    .img_rect   = {0, 0, 400, 400},
+    .mipi_attr  = {
+        DATA_TYPE_RAW_10BIT,
+        OT_MIPI_WDR_MODE_NONE,
+        {1, 3, -1, -1, -1, -1, -1, -1}
+    }
+};
+
+static combo_dev_attr_t g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev2_attr = {   //add by wei
+    .devno = 2, /* dev2 */
+    .input_mode = INPUT_MODE_MIPI,
+    .data_rate  = MIPI_DATA_RATE_X1,
+    .img_rect   = {0, 0, 400, 400},
+    .mipi_attr  = {
+        DATA_TYPE_RAW_10BIT,
+        OT_MIPI_WDR_MODE_NONE,
+        {4, 6, -1, -1, -1, -1, -1, -1}
+    }
+};
+
+static combo_dev_attr_t g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev3_attr = {  //add by wei
+    .devno = 3, /* dev3 */
+    .input_mode = INPUT_MODE_MIPI,
+    .data_rate  = MIPI_DATA_RATE_X1,
+    .img_rect   = {0, 0, 400, 400},
+    .mipi_attr  = {
+        DATA_TYPE_RAW_10BIT,
+        OT_MIPI_WDR_MODE_NONE,
+        {5, 7, -1, -1, -1, -1, -1, -1}
+    }
+};
+
+
+
 static hi_void sample_comm_vi_get_mipi_attr(sample_sns_type sns_type, combo_dev_attr_t *combo_attr)
 {
     hi_u32 ob_height = OB_HEIGHT_START;
@@ -370,7 +429,10 @@ static hi_void sample_comm_vi_get_mipi_attr(sample_sns_type sns_type, combo_dev_
             (hi_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),
                 &g_mipi_8lane_chn0_sensor_imx485_10bit_8m_wdr3to1_attr, sizeof(combo_dev_attr_t));
             break;
-
+        case OV_OAH428_MIPI_30FPS_10BIT:                                                                 //add by wei
+            (td_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),                                      //add by wei
+                &g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev0_attr, sizeof(combo_dev_attr_t)); //add by wei
+            break;
         default:
             (hi_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),
                 &g_mipi_4lane_chn0_sensor_os08a20_12bit_8m_nowdr_attr, sizeof(combo_dev_attr_t));
@@ -386,8 +448,8 @@ static hi_void sample_comm_vi_get_mipi_ext_data_attr(sample_sns_type sns_type, e
         case OV_OS04A10_MIPI_4M_30FPS_12BIT:
         case OV_OS04A10_2L_MIPI_4M_30FPS_10BIT:  
         case SONY_IMX485_MIPI_8M_30FPS_12BIT: 
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
         case SONY_IMX347_SLAVE_MIPI_4M_30FPS_12BIT:
             (hi_void)memcpy_s(ext_data_attr, sizeof(ext_data_type_t),
                 &g_mipi_ext_data_type_os08a20_12bit_8m_nowdr_attr, sizeof(ext_data_type_t));
@@ -401,7 +463,10 @@ static hi_void sample_comm_vi_get_mipi_ext_data_attr(sample_sns_type sns_type, e
             (hi_void)memcpy_s(ext_data_attr, sizeof(ext_data_type_t),
                 &g_mipi_ext_data_type_default_attr, sizeof(ext_data_type_t));
             break;
-
+        case OV_OAH428_MIPI_30FPS_10BIT:                                                 //add by wei        
+            (td_void)memcpy_s(ext_data_attr, sizeof(ext_data_type_t),                    //add by wei
+                &g_mipi_ext_data_type_oah428_10bit_nowdr_attr, sizeof(ext_data_type_t)); //add by wei
+            break;
         default:
             (hi_void)memcpy_s(ext_data_attr, sizeof(ext_data_type_t),
                 &g_mipi_ext_data_type_default_attr, sizeof(ext_data_type_t));
@@ -490,8 +555,8 @@ static hi_void sample_comm_vi_get_mipi_attr_by_dev_id(sample_sns_type sns_type, 
             }
             break;
             
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT: 
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT: 
             ob_height = IMX334_OB_HEIGHT_END;
             if (vi_dev == 0) {
                 (hi_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),
@@ -502,7 +567,26 @@ static hi_void sample_comm_vi_get_mipi_attr_by_dev_id(sample_sns_type sns_type, 
             }
             combo_attr->mipi_attr.input_data_type = combo_attr->mipi_attr.input_data_type;
             break;
-
+            
+        case OV_OAH428_MIPI_30FPS_10BIT:                                                                       //add by wei 
+            ob_height = OAH428_OB_HEIGHT_END;                                                                  //add by wei 
+            if (vi_dev == 2) { /* dev2 */                                                                      //add by wei 
+                (td_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),                                        //add by wei 
+                    &g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev2_attr, sizeof(combo_dev_attr_t));   //add by wei 
+            }
+            else if (vi_dev == 3) { /* dev3 */                                                                 //add by wei 
+                (td_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),                                        //add by wei 
+                    &g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev3_attr, sizeof(combo_dev_attr_t));   //add by wei 
+            }
+            else if (vi_dev == 0) { /* dev0 */                                                                 //add by wei 
+                (td_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),                                        //add by wei 
+                    &g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev0_attr, sizeof(combo_dev_attr_t));   //add by wei 
+            }
+            else if (vi_dev == 1) { /* dev1 */                                                                 //add by wei 
+                (td_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),                                        //add by wei 
+                    &g_mipi_2lane_chn0_sensor_oah428_slave_10bit_nowdr_dev1_attr, sizeof(combo_dev_attr_t));   //add by wei 
+            }
+            break;
         default:
             (hi_void)memcpy_s(combo_attr, sizeof(combo_dev_attr_t),
                 &g_mipi_4lane_chn0_sensor_os08a20_12bit_8m_nowdr_attr, sizeof(combo_dev_attr_t));
@@ -583,8 +667,8 @@ hi_void sample_comm_vi_get_size_by_sns_type(sample_sns_type sns_type, hi_size *s
         case OV_OS08B10_MIPI_8M_30FPS_12BIT_WDR2TO1:
         case SONY_IMX485_MIPI_8M_30FPS_12BIT:
         case SONY_IMX485_MIPI_8M_30FPS_10BIT_WDR3TO1:
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
             size->width  = WIDTH_3840;
             size->height = HEIGHT_2160;
             break;
@@ -602,7 +686,10 @@ hi_void sample_comm_vi_get_size_by_sns_type(sample_sns_type sns_type, hi_size *s
             size->width = WIDTH_2688;
             size->height = HEIGHT_1520;
             break;
-
+        case OV_OAH428_MIPI_30FPS_10BIT: //add by wei
+            size->width = 400;           //add by wei
+            size->height = 400;          //add by wei
+            break;
         default:
             size->width  = WIDTH_1920;
             size->height = HEIGHT_1080;
@@ -627,9 +714,9 @@ hi_u32 sample_comm_vi_get_obheight_by_sns_type(sample_sns_type sns_type)
         case SONY_IMX485_MIPI_8M_30FPS_12BIT:
             ob_height = IMX485_OB_HEIGHT_END;
             break;
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT: 
-			ob_height = IMX334_OB_HEIGHT_END;
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT: 
+    			  ob_height = IMX334_OB_HEIGHT_END;
             break;
         case OV_OS05A10_SLAVE_MIPI_4M_30FPS_12BIT:
         case OV_OS04A10_2L_MIPI_4M_30FPS_10BIT:  
@@ -638,6 +725,9 @@ hi_u32 sample_comm_vi_get_obheight_by_sns_type(sample_sns_type sns_type)
         case OV_OS08B10_MIPI_8M_30FPS_12BIT:
         case OV_OS08B10_MIPI_8M_30FPS_12BIT_WDR2TO1:
             ob_height = OB_HEIGHT_START;
+            break;
+        case OV_OAH428_MIPI_30FPS_10BIT:        //add by wei
+            ob_height = OAH428_OB_HEIGHT_END;   //add by wei
             break;
         default:
             break;
@@ -656,8 +746,9 @@ static hi_u32 sample_comm_vi_get_pipe_num_by_sns_type(sample_sns_type sns_type)
         case OV_OS04A10_2L_MIPI_4M_30FPS_10BIT:  
         case SONY_IMX347_SLAVE_MIPI_4M_30FPS_12BIT:
         case SONY_IMX485_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
-		case SONY_IMX334_MIPI_8M_60FPS_12BIT:  
+    		case SONY_IMX334_MIPI_8M_30FPS_12BIT:
+    		case SONY_IMX334_MIPI_8M_60FPS_12BIT:
+    		case OV_OAH428_MIPI_30FPS_10BIT:  
             return 1;
 
         case OV_OS08A20_MIPI_8M_30FPS_12BIT_WDR2TO1:

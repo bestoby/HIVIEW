@@ -185,7 +185,7 @@ static void msg_func_snap(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
   #else
     if(req->sid == 1)
     {
-      #if defined(GSF_CPU_3519d)
+      #if defined(GSF_CPU_3519d)|| defined(GSF_CPU_3403)
       gsf_mpp_venc_snap4vi(rsp->ch, 1, snap_cb, rsp);
       #endif
     }
@@ -558,6 +558,50 @@ static void msg_func_imgldc(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osiz
   } 
 }
 
+
+static void msg_func_imgdis(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
+{
+
+  if(req->set)
+  {
+    gsf_img_dis_t *_dis = (gsf_img_dis_t*)req->data;
+    
+    gsf_mpp_img_dis_t dis;
+    dis.bEnable = _dis->bEnable;
+    dis.enMode = _dis->enMode;
+    
+    //0: GME_TYPE_4DOF, is HI_DIS_PDT_TYPE_DV
+    //1: MODE_6_DOF_GME,is HI_DIS_PDT_TYPE_RECORDER
+    //2: MODE_GYRO, pdt_type;
+    
+    #if defined(GSF_CPU_3403)||defined(GSF_CPU_3519d)
+    //HI_DIS_PDT_TYPE_RECORDER; HI_DIS_PDT_TYPE_DV; HI_DIS_PDT_TYPE_DRONE;
+    dis.enPdtType = (dis.enMode >= HI_DIS_MODE_GYRO)?HI_DIS_PDT_TYPE_DV:HI_DIS_PDT_TYPE_RECORDER;
+    #else
+    //DIS_PDT_TYPE_IPC; DIS_PDT_TYPE_DV; DIS_PDT_TYPE_DRONE;
+    dis.enPdtType = (dis.enMode >= DIS_MODE_GYRO)?DIS_PDT_TYPE_DV:DIS_PDT_TYPE_IPC;
+    #endif
+    int ret = gsf_mpp_isp_ctl(req->ch, GSF_MPP_ISP_CTL_DIS, &dis);
+    if(!ret)
+    {  
+      GET_IMG(req->ch);
+      _img->dis = *_dis;
+      json_parm_save(codec_parm_path, &codec_ipc);  
+    }
+    rsp->err  = 0;
+    rsp->size = 0;
+    printf("set DIS en:%d, mode:%d\n", _dis->bEnable, _dis->enMode);
+  }
+  else
+  {
+    gsf_img_dis_t *dis = (gsf_img_dis_t*)rsp->data;
+    rsp->err  = 0;
+    rsp->size = sizeof(gsf_img_dis_t);
+    printf("get DIS\n");
+  } 
+}
+
+
 static void msg_func_img3dnr(gsf_msg_t *req, int isize, gsf_msg_t *rsp, int *osize)
 {
   if(req->set)
@@ -664,7 +708,8 @@ static msg_func_t *msg_func[GSF_ID_CODEC_END] = {
     [GSF_ID_CODEC_IMGLDCI]= msg_func_imgldci,
     [GSF_ID_CODEC_IMG3DNR]= msg_func_img3dnr,
     [GSF_ID_CODEC_SCENEAE]= msg_func_sceneae, 
-    [GSF_ID_CODEC_IMGLDC]= msg_func_imgldc,       
+    [GSF_ID_CODEC_IMGLDC]= msg_func_imgldc,
+    [GSF_ID_CODEC_IMGDIS]= msg_func_imgdis,
 #endif    
  };
 

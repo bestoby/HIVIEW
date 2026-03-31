@@ -143,7 +143,7 @@ static gsf_mpp_cfg_t  *p_cfg = NULL;
 
 #define VENC_FIXED_LORES(sns, w, h, fps, r) ({\
   int __change = 1;\
-  if (strstr(sns, "imx586-0-0-48")) {w = 640; h = 640; fps = 1; r = 1000;}\
+  if (strstr(sns, "imx586-0-0-48")) {w = 640; h = 360; fps = 1; r = 1000;}\
   else if(strstr(sns, "bt1120")) {w = 640; h = 360; fps = 60; r = 1000;}\
   else if(strstr(sns, "bt656")){w = 640; h = 512; fps = 60; r = 1000;}\
   else if(strstr(sns, "uvc")){w = 640; h = 512; fps = 60; r = 1000;}\
@@ -194,14 +194,14 @@ int venc_start(int start)
   for(i = 0; i < p_venc_ini->ch_num; i++)
   for(j = 0; j < GSF_CODEC_VENC_NUM; j++)
   {
-    if((!codec_ipc.venc[j].en) || (j >= p_venc_ini->st_num && j != GSF_CODEC_SNAP_IDX))
+    if(!codec_ipc.venc[j].en)
       continue;
 
     gsf_mpp_venc_t venc = {
       .VencChn    = i*GSF_CODEC_VENC_NUM+j,
       .srcModId   = HI_ID_VPSS,
       .VpssGrp    = i,
-      .VpssChn    = (j<p_venc_ini->st_num)?j:0,
+      .VpssChn    = (p_vpss[i].enable[j])?j:0,
       .enPayLoad  = PT_VENC(codec_ipc.venc[j].type),
       .enSize     = PIC_WIDTH(codec_ipc.venc[j].width, codec_ipc.venc[j].height),
       .enRcMode   = codec_ipc.venc[j].rcmode,
@@ -249,7 +249,7 @@ int venc_start(int start)
     if(!start)
       continue;
     
-    if(j < p_venc_ini->st_num) // st_num+1(JPEG);
+    if(codec_ipc.venc[j].type != GSF_ENC_JPEG)
     {
       st.VeChn[st.s32Cnt] = venc.VencChn;
       st.s32Cnt++;
@@ -299,7 +299,7 @@ void mpp_ini_3403(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *ve
     if(strstr(cfg->snsname[i], "imx482"))
     {
       strcpy(cfg->snsname[i], "imx482-0-0-2-30");
-      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_1080P, PIC_1080P);
+      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_1080P, PIC_360P);
     }
     else if(strstr(cfg->snsname[i], "os04a10"))
     {
@@ -309,27 +309,40 @@ void mpp_ini_3403(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *ve
         strcpy(cfg->snsname[i], "os04a10-0-0-4-30");
       
       cfg->slave = 0;
-      //cfg->slave = (cfg->snscnt>2)?1:0; //for slave;
-      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_2688x1520, PIC_640P);
+      if(avs)
+      {
+        cfg->slave = 1; //for slave;  
+        VPSS_BIND_VI(i, i, 0, i, 0, 1, PIC_2688x1520, PIC_2688x1520);
+      }
+      else
+      {      
+        VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_2688x1520, PIC_360P);
+      }  
     }
     else if(strstr(cfg->snsname[i], "imx586"))
     {
       if(codec_ipc.vi.fps == 30)
       {  
         strcpy(cfg->snsname[i], "imx586-0-0-8-30");
-        VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_3840x2160, PIC_640P);
+        VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_3840x2160, PIC_360P);
       }
       else
       {    
         strcpy(cfg->snsname[i], "imx586-0-0-48-5");
-        VPSS_BIND_VI(i, i, 0, i, 1, 0, PIC_8000x6000, PIC_640P);
+        VPSS_BIND_VI(i, i, 0, i, 1, 0, PIC_8000x6000, PIC_360P);
       }
+    }
+    else if (strstr(cfg->snsname[i], "oah428"))
+    {
+      strcpy(cfg->snsname[i], "oah428-0-0-0-30");
+      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_400P, PIC_400P);
     }
     else 
     {
       sprintf(cfg->snsname[i], "%s-0-0-8-30", cfg->snsname[i]);
 
-      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_3840x2160, PIC_640P);
+      //VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_3840x2160, PIC_360P);
+      VPSS_BIND_VI(i, i, 0, i, 1, 1, PIC_3840x2160, PIC_1080P);
       if(strstr(cfg->snsname[i], "uvc"))
       {
         uvc_vpss_grp = i;
@@ -414,19 +427,27 @@ int mpp_start(gsf_bsp_def_t *def)
     vi.venc_pic_size[0] = p_vpss[0].enSize[0];
     vi.venc_pic_size[1] = p_vpss[0].enSize[1];
       
+    if(avs)
+    {
+      vi.stStitchGrpAttr.stitch_en = HI_TRUE;
+      vi.stStitchGrpAttr.pipe_num = 4;
+    }
+      
     gsf_mpp_vi_start(&vi);
     
     {
       //ttyAMA2: Single channel baseboard, ttyAMA4: double channel baseboard;
       char uart_name[32] = {0};
 	    sprintf(uart_name, "/dev/%s", codec_ipc.lenscfg.uart);
-	    
+	    warn("sensor0:[%s], sensor1:[%s]\n", def->board.sensor[0], def->board.sensor[1]);
 	    if(strstr(def->board.sensor[0], "imx586") && strstr(def->board.sensor[1], "imx415"))
 	    {
+	      warn("gsf_lens_start(1, %s)\n", uart_name);
 	      gsf_lens_start(1, uart_name);
 	    }  
 	    else
 	    {
+	      warn("gsf_lens_start(0, %s)\n", uart_name);
 	      gsf_lens_start(0, uart_name);
 	    }
   	}
@@ -489,6 +510,13 @@ int mpp_start(gsf_bsp_def_t *def)
           gsf_mpp_scene_ctl(i, GSF_MPP_SCENE_CTL_ALL, &codec_ipc.scene[i]);
         }
       }
+    }
+    
+    if(avs)
+    {
+       gsf_mpp_avs_start();
+       venc_ini.ch_num = venc_ini.st_num = 2;
+       rgn_ini.ch_num = rgn_ini.st_num = 2;
     }
     
     //internal-init rgn, venc;
@@ -628,11 +656,25 @@ int main_start(gsf_bsp_def_t *bsp_def)
     #endif
     
     //flip&mirror;
-    gsf_mpp_img_flip_t flip;
-    flip.bFlip = codec_ipc.vi.flip;
-    flip.bMirror = codec_ipc.vi.flip;
-    gsf_mpp_isp_ctl(0, GSF_MPP_ISP_CTL_FLIP, &flip);
+    if(codec_ipc.vi.flip)
+    {
+      gsf_mpp_img_flip_t flip;
+      flip.bFlip = codec_ipc.vi.flip;
+      flip.bMirror = codec_ipc.vi.flip;
+      gsf_mpp_isp_ctl(0, GSF_MPP_ISP_CTL_FLIP, &flip);
+    }
     
+    //dis;
+    if(codec_ipc.vi.dis)
+    {
+      gsf_mpp_img_dis_t dis;
+      dis.bEnable = codec_ipc.vi.dis;
+      //dis.enMode = HI_DIS_MODE_6_DOF_GME;
+      dis.enMode = HI_DIS_MODE_GYRO;
+      dis.enPdtType = HI_DIS_PDT_TYPE_IPC;
+      printf("GSF_MPP_ISP_CTL_DIS:%d\n", GSF_MPP_ISP_CTL_DIS);
+      gsf_mpp_isp_ctl(0, GSF_MPP_ISP_CTL_DIS, &dis);
+    }
     return 0;
 }
 

@@ -768,9 +768,9 @@ hi_s32 sample_hnr_set_blc(hi_vi_pipe vi_pipe, sample_sns_type sns_type)
     //maohw Dynamic blc 模式调节 iso 时, 拉满 again 后不能调节 dgain, 只能调节 ispdgain;
     if ((sns_type == SONY_IMX347_SLAVE_MIPI_4M_30FPS_12BIT)
       || (sns_type == SONY_IMX485_MIPI_8M_30FPS_12BIT) 
-      || (sns_type == SONY_IMX585_MIPI_8M_30FPS_12BIT)
-      || (sns_type == SONY_IMX585_MIPI_8M_60FPS_10BIT)
-      || (sns_type == SONY_IMX482_MIPI_2M_30FPS_12BIT)
+      //|| (sns_type == SONY_IMX585_MIPI_8M_30FPS_12BIT)
+      //|| (sns_type == SONY_IMX585_MIPI_8M_60FPS_10BIT)
+      //|| (sns_type == SONY_IMX482_MIPI_2M_30FPS_12BIT)
       )
     {
         black_level_attr.black_level_mode = HI_ISP_BLACK_LEVEL_MODE_DYNAMIC;

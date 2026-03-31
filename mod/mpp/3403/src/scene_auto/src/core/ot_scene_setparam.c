@@ -1028,7 +1028,6 @@ HI_SCENE_CTL_AE_S g_scene_ctl_ae[4] = {
   {.compensation_mul = 1},
   };
 
-
 hi_s32 ot_scene_set_dynamic_ae(hi_vi_pipe vi_pipe, hi_u64 exposure, hi_u64 last_exposure, hi_u8 index)
 {
     ot_scenecomm_expr_true_return(index >= HI_SCENE_PIPETYPE_NUM, HI_FAILURE);
@@ -1086,6 +1085,28 @@ hi_s32 ot_scene_set_dynamic_ae(hi_vi_pipe vi_pipe, hi_u64 exposure, hi_u64 last_
                     get_pipe_params()[index].dynamic_ae.auto_max_hist_offset[exp_level]);
         }
         exposure_attr.auto_attr.compensation *= _scene_ctl_ae[vi_pipe].compensation_mul;
+        if(exposure > 10*1000*1000)
+        {
+          exposure_attr.auto_attr.ae_strategy_mode  = OT_ISP_AE_EXP_LOWLIGHT_PRIOR;
+          exposure_attr.auto_attr.ae_mode           = OT_ISP_AE_MODE_SLOW_SHUTTER;
+          //exposure_attr.auto_attr.ispd_gain_range.max = 1024;
+        }
+        else 
+        {
+          exposure_attr.auto_attr.ae_strategy_mode  = OT_ISP_AE_EXP_HIGHLIGHT_PRIOR;
+          exposure_attr.auto_attr.ae_mode           = OT_ISP_AE_MODE_FIX_FRAME_RATE;
+          //exposure_attr.auto_attr.ispd_gain_range.max = 2048;
+        }  
+        
+        //maohw
+		#if 0
+        printf("vi_pipe:%d, exposure:%d, exp_level:%d, compensation:%d, prior:%d[h_0,l_1], fps:%d[slow_0,fix_1]\n"
+                , vi_pipe, exposure, exp_level
+                , exposure_attr.auto_attr.compensation
+                , exposure_attr.auto_attr.ae_strategy_mode
+                , exposure_attr.auto_attr.ae_mode);
+        #endif
+        
         check_scene_return_if_pause();
         ret = hi_mpi_isp_set_exposure_attr(vi_pipe, &exposure_attr);
         check_scene_ret(ret);
@@ -1554,6 +1575,9 @@ hi_s32 ot_scene_set_dynamic_ca(hi_vi_pipe vi_pipe, hi_u64 iso, hi_u64 last_iso, 
 hi_s32 ot_scene_set_dynamic_blc(hi_vi_pipe vi_pipe, hi_u64 iso, hi_u64 last_iso, hi_u8 index)
 {
     ot_scenecomm_expr_true_return(index >= HI_SCENE_PIPETYPE_NUM, HI_FAILURE);
+    
+    //printf("\n dynamic_blc:%d, iso:%d, last_iso:%d\n", get_pipe_params()[index].module_state.dynamic_blc, iso, last_iso);
+    
     if ((get_pipe_params()[index].module_state.dynamic_blc != HI_TRUE) || (iso == last_iso)) {
         return HI_SUCCESS;
     }
@@ -1596,6 +1620,12 @@ hi_s32 ot_scene_set_dynamic_blc(hi_vi_pipe vi_pipe, hi_u64 iso, hi_u64 last_iso,
             get_pipe_params()[index].dynamic_blc.blc_b[iso_level - 1], right_iso,
             get_pipe_params()[index].dynamic_blc.blc_b[iso_level]);
     }
+    #if 0
+    printf("\n iso:%d, iso_level:%d, black_mode:%d, black_level[%d,%d,%d,%d]\n"
+          , iso, iso_level, isp_blc_attr.black_level_mode
+          , isp_blc_attr.manual_attr.black_level[0][0], isp_blc_attr.manual_attr.black_level[0][1]
+          , isp_blc_attr.manual_attr.black_level[0][2], isp_blc_attr.manual_attr.black_level[0][3]);
+    #endif
     check_scene_return_if_pause();
     ret = hi_mpi_isp_set_black_level_attr(vi_pipe, &isp_blc_attr);
     check_scene_ret(ret);
@@ -2165,7 +2195,7 @@ hi_s32 ot_scene_set_dynamic_3dnr(hi_vi_pipe vi_pipe, hi_u32 iso, hi_u8 index)
 
         scene_set_3dnr_nrx_nrc1(param);
     }
-
+    //printf("3dnr vi_pipe:%d, iso_level:%d\n", vi_pipe, iso_level);
     hi_s32 ret = scene_set_3dnr(vi_pipe, &nrx_attr, index);
     check_scene_ret(ret);
     return HI_SUCCESS;

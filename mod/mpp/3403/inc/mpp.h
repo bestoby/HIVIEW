@@ -168,8 +168,9 @@ typedef struct {
 int gsf_mpp_mcf_start(gsf_mpp_mcf_t *mcf);
 int gsf_mpp_mcf_stop(gsf_mpp_mcf_t *mcf);
 
-
-
+//avc;
+int gsf_mpp_avs_start(void);
+int gsf_mpp_avs_stop(void);
 
 //venc;
 typedef struct {
@@ -225,7 +226,8 @@ typedef struct {
 int gsf_mpp_venc_recv(gsf_mpp_recv_t *recv);
 int gsf_mpp_venc_dest();
 int gsf_mpp_venc_snap(VENC_CHN VencChn, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
-
+int gsf_mpp_venc_snap4vpss(int VpssGrp, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
+int gsf_mpp_venc_snap4vi(int ViPipe, HI_U32 SnapCnt, int(*cb)(int i, VENC_STREAM_S* pstStream, void* u), void* u);
 
 //isp;
 int gsf_mpp_scene_start(char *path, int scenemode);
@@ -358,6 +360,8 @@ typedef struct {
   int bMirror;
 }gsf_mpp_img_flip_t;
     
+    
+#define HI_DIS_PDT_TYPE_RECORDER OT_DIS_PDT_TYPE_IPC
 typedef struct {
   int bEnable;
   int enMode;    //DIS_MODE_4_DOF_GME = 0 ;//DIS_MODE_6_DOF_GME; //DIS_MODE_4_DOF_GME;
