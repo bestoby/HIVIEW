@@ -36,6 +36,9 @@ int mppex_comm_vi_get_default_pipe_info(sample_sns_type sns_type, int i,
                                              
 int mppex_comm_vi_bypass_isp(const sample_vi_cfg *vi_cfg);
 
+int mppex_comm_vi_init_one_pipe(hi_vi_pipe vi_pipe, const sample_vi_pipe_info *pipe_info);
+
+
 int mppex_comm_isp_get_pub_attr_by_sns(sample_sns_type sns_type, hi_isp_pub_attr *pub_attr);
 
 hi_wdr_mode mppex_comm_vi_get_wdr_mode_by_sns_type(sample_sns_type sns_type);

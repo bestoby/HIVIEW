@@ -6,7 +6,7 @@
 typedef struct {
   int ch_num;   // lens number;
   char sns[32]; // sensor name;
-  char lens[32];// lens name;
+  char board[32];// board name;
 }gsf_lens_ini_t;
 
 extern int (*gsf_lens_init)(gsf_lens_ini_t *ini);

@@ -199,10 +199,6 @@ int main(int argc, char *argv[])
       hi_vpss_chn_attr chn_attr;
       const hi_s32 vpss_grp = 0;
       hi_s32 vpss_chn[] = { HI_VPSS_CHN0, HI_VPSS_CHN1 };
-      ret = hi_mpi_vpss_get_chn_attr(vpss_grp, vpss_chn[0], &chn_attr);
-      chn_attr.depth = 1;
-      chn_attr.chn_mode = HI_VPSS_CHN_MODE_USER;
-      ret = hi_mpi_vpss_set_chn_attr(vpss_grp, vpss_chn[0], &chn_attr);
 
       ret = hi_mpi_vpss_get_chn_attr(vpss_grp, vpss_chn[1], &chn_attr);
       chn_attr.depth = 1;
@@ -219,14 +215,17 @@ int main(int argc, char *argv[])
       yolo_boxs_t boxs = {0};
       
       ret = hi_mpi_vpss_get_chn_frame(vpss_grp, vpss_chn[1], &ext_frame, milli_sec);
-      ret = hi_mpi_vpss_get_chn_frame(vpss_grp, vpss_chn[0], &base_frame, milli_sec);
+      
+      base_frame = ext_frame;
+
       ret = sample_svp_npu_detect(&ext_frame, &base_frame, &boxs);
       if(ret == 0)
       {
         pub_send(&boxs);
-      }  
-      ret = hi_mpi_vpss_release_chn_frame(vpss_grp, vpss_chn[0], &base_frame);
+      }
       ret = hi_mpi_vpss_release_chn_frame(vpss_grp, vpss_chn[1], &ext_frame);
+      
+      usleep(10*1000);
     }
     
     GSF_LOG_DISCONN();

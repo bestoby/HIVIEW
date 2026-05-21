@@ -13,6 +13,7 @@ extern int dzoom_plus;
 
 static int _sensor_flag = 0;
 static int _flash_emmc  = 0;
+static int _board_type  = DMEB_BGA;
 
 enum {
   LENS_TYPE_UART,  // 0: fixed-lens & uart-zoom
@@ -58,24 +59,49 @@ static int ptz_led_set(int stat);
 
 #warning "3516cv610 lens is implemented"
 
-//#9-2, 9-3; IRCUT1
+
 #define IRCUT0_INIT() do {\
-    system("bspmm 0x17940058 0x0;bspmm 0x1794005C 0x0;echo 74 > /sys/class/gpio/export;echo 75 > /sys/class/gpio/export;");\
-    system("echo low > /sys/class/gpio/gpio74/direction;echo low > /sys/class/gpio/gpio75/direction");\
+    if(_board_type == DMEB_BGA)\
+    {/*9-2, 9-3*/ \
+      system("bspmm 0x17940058 0x0;bspmm 0x1794005C 0x0;echo 74 > /sys/class/gpio/export;echo 75 > /sys/class/gpio/export;");\
+      system("echo low > /sys/class/gpio/gpio74/direction;echo low > /sys/class/gpio/gpio75/direction");\
+    } else \ 
+    {/*7-7, 1-0*/ \
+      system("bspmm 0x11130038 0x0;bspmm 0x1113003c 0x0;echo 63 > /sys/class/gpio/export;echo 8 > /sys/class/gpio/export;");\
+      system("echo low > /sys/class/gpio/gpio63/direction;echo low > /sys/class/gpio/gpio8/direction");\
+    }\
   }while(0)
 
 #define __IRCUT0_DAY(ctl) do {\
-    if(ctl == IRCUT_CTL_LEVEL)\
-      system("echo 0 > /sys/class/gpio/gpio74/value;echo 0 > /sys/class/gpio/gpio75/value;");\
-    else \
-      system("echo 0 > /sys/class/gpio/gpio74/value;echo 1 > /sys/class/gpio/gpio75/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio75/value");\
+    if(_board_type == DMEB_BGA)\
+    {\  
+      if(ctl == IRCUT_CTL_LEVEL)\
+        system("echo 0 > /sys/class/gpio/gpio74/value;echo 0 > /sys/class/gpio/gpio75/value;");\
+      else \
+        system("echo 0 > /sys/class/gpio/gpio74/value;echo 1 > /sys/class/gpio/gpio75/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio75/value");\
+    } else \
+    {\
+      if(ctl == IRCUT_CTL_LEVEL)\
+        system("echo 0 > /sys/class/gpio/gpio63/value;echo 0 > /sys/class/gpio/gpio8/value;");\
+      else \
+        system("echo 0 > /sys/class/gpio/gpio63/value;echo 1 > /sys/class/gpio/gpio8/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio8/value");\
+    }\
   }while(0)
 
 #define __IRCUT0_NIGHT(ctl) do {\
-    if(ctl == IRCUT_CTL_LEVEL)\
-      system("echo 1 > /sys/class/gpio/gpio74/value;echo 1 > /sys/class/gpio/gpio75/value;");\
-    else \
-      system("echo 1 > /sys/class/gpio/gpio74/value;echo 0 > /sys/class/gpio/gpio75/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio74/value");\
+    if(_board_type == DMEB_BGA)\
+    {\  
+      if(ctl == IRCUT_CTL_LEVEL)\
+        system("echo 1 > /sys/class/gpio/gpio74/value;echo 1 > /sys/class/gpio/gpio75/value;");\
+      else \
+        system("echo 1 > /sys/class/gpio/gpio74/value;echo 0 > /sys/class/gpio/gpio75/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio74/value");\
+    } else\
+    {\
+      if(ctl == IRCUT_CTL_LEVEL)\
+        system("echo 1 > /sys/class/gpio/gpio63/value;echo 1 > /sys/class/gpio/gpio63/value;");\
+      else \
+        system("echo 1 > /sys/class/gpio/gpio63/value;echo 0 > /sys/class/gpio/gpio8/value;sleep 0.1;echo 0 > /sys/class/gpio/gpio63/value");\
+    }\
   }while(0)
 
 //#; IRCUT2
@@ -105,30 +131,38 @@ static int ptz_led_set(int stat);
     if(_ircut_rev) __IRCUT1_DAY(ctl); else __IRCUT1_NIGHT(ctl);\
   }while(0)
 
-/*
-  bspmm 0x17940090 0x0; #0x0: GPIO7_0 0x3: SPI0_CSN0 0x5: I2C1_SDA 0x7: SENSOR0_HS                 
-  bspmm 0x17940094 0x0; #0x0: GPIO7_1 0x3: SPI0_SDI 0x4: SENSOR0_RSTN 0x5: I2C1_SCL 0x7: SENSOR0_VS 
-  echo 56 > /sys/class/gpio/export;
-  echo 57 > /sys/class/gpio/export;
-  echo high > /sys/class/gpio/gpio56/direction;
-  echo high > /sys/class/gpio/gpio57/direction;
-*/
 
-//#7-0  white-lamp
-//#7-1-ir-lamp
 #define LAMP0_INIT() do {\
-    system("bspmm 0x17940094 0x0;echo 57 > /sys/class/gpio/export");\
-    system("echo high > /sys/class/gpio/gpio57/direction");\
+    if(_board_type == DMEB_BGA)\
+    { /*#7-1-ir-lamp #7-0  white-lamp*/ \
+      system("bspmm 0x17940094 0x0;echo 57 > /sys/class/gpio/export");\
+      system("echo high > /sys/class/gpio/gpio57/direction");\
+    } else \
+    {/*#1-3-ir-lamp*/ \
+      system("bspmm 0x11130044 0x2;echo 11 > /sys/class/gpio/export");\
+      system("echo low > /sys/class/gpio/gpio11/direction");\
+    }\
   }while(0)
 
 #define LAMP0_DAY() do {\
+    if(_board_type == DMEB_BGA)\
+    {\  
       system("echo 1 > /sys/class/gpio/gpio57/value");\
+    } else \
+    {\
+      system("echo 0 > /sys/class/gpio/gpio11/value");\
+    }\
   }while(0)
 
 #define LAMP0_NIGHT() do {\
+    if(_board_type == DMEB_BGA)\
+    {\  
       system("echo 0 > /sys/class/gpio/gpio57/value");\
+    } else \
+    {\
+      system("echo 1 > /sys/class/gpio/gpio11/value");\
+    }\
   }while(0)
-
 
 int flash_is_emmc()
 {
@@ -147,13 +181,14 @@ int flash_is_emmc()
 int lens610_lens_init(gsf_lens_ini_t *ini)
 {
   _ini = *ini;
-  _sensor_flag = (strstr(_ini.sns, "imx") ||strstr(_ini.sns, "os"))?1:0;
+  _sensor_flag = (strstr(_ini.sns, "imx") ||strstr(_ini.sns, "os")|| strstr(_ini.sns, "sc"))?1:0;
   _flash_emmc  = flash_is_emmc();
   _lens_type   = codec_ipc.lenscfg.lens;
   _ircut_type  = codec_ipc.lenscfg.ircut;
   _ircut_ctl   = (strstr(_ini.sns, "imx585") || strstr(_ini.sns, "imx482"))?IRCUT_CTL_LEVEL:IRCUT_CTL_EDGE;
   _ircut_rev   = codec_ipc.lenscfg.ircut_rev;
-  
+  _board_type  = strstr(_ini.board, "HI3516CV610_20S")?DMEB_QFN:DMEB_BGA;
+      
   printf("_sensor_flag:%d, _flash_emmc:%d, _lens_type:%d, _ircut_type:%d, _ircut_rev:%d\n"
         , _sensor_flag, _flash_emmc, _lens_type, _ircut_type, _ircut_rev);
     

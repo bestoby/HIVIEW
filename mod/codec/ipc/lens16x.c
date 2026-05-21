@@ -39,7 +39,7 @@ enum {
 static gsf_lens_ini_t _ini;
 static pthread_t serial_tid, af_tid;
 static int serial_fd = -1, last_cmd = GSF_LENS_STOP;
-static int _zoomValue = 0, _zoomDir = 0; _cdsValue = 0, _dayNight = 0; // 0: day,  1: night;
+static int _zoomValue = 0, _zoomDir = 0, _cdsValue = 0, _dayNight = 0; // 0: day,  1: night;
 static void* serial_task(void *parm);
 static int pelco_d_write(int cmd);
 static int ptz_zoom_value(int z);

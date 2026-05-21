@@ -2528,7 +2528,7 @@ EXIT_SYS_VI_VPSS:
     return ret;
 }
 
-static hi_s32 sample_venc_chn_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id)
+/*maohw static*/ hi_s32 sample_venc_chn_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id)
 {
     hi_mpp_chn src_chn;
     hi_mpp_chn dest_chn;
@@ -2546,7 +2546,7 @@ static hi_s32 sample_venc_chn_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_i
     return HI_SUCCESS;
 }
 
-static hi_s32 sample_venc_chn_un_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id)
+/*maohw static*/ hi_s32 sample_venc_chn_un_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id)
 {
     hi_mpp_chn src_chn;
     hi_mpp_chn dest_chn;

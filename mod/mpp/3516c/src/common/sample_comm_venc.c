@@ -1571,7 +1571,7 @@ hi_s32 sample_comm_venc_create(hi_venc_chn venc_chn, sample_comm_venc_chn_param 
     return HI_SUCCESS;
 }
 
-static hi_s32 sample_comm_venc_set_mod_type(hi_payload_type payload_type, hi_venc_mod_param *mod_param)
+hi_s32 sample_comm_venc_set_mod_type(hi_payload_type payload_type, hi_venc_mod_param *mod_param)
 {
     switch (payload_type) {
         case HI_PT_H264:
@@ -1596,7 +1596,7 @@ static hi_s32 sample_comm_venc_set_mod_type(hi_payload_type payload_type, hi_ven
     return HI_SUCCESS;
 }
 
-static hi_s32 sample_comm_venc_set_mini_buf(hi_payload_type payload_type, hi_venc_mod_param *mod_param)
+hi_s32 sample_comm_venc_set_mini_buf(hi_payload_type payload_type, hi_venc_mod_param *mod_param)
 {
     switch (payload_type) {
         case HI_PT_H264:

@@ -612,7 +612,7 @@ __inline static td_u32 ot_venc_get_h264_pic_buf_size(const ot_venc_buf_attr *att
     width = attr->pic_buf_attr.width;
     height_align = OT_ALIGN_UP(attr->pic_buf_attr.height, 16); /* 16: align */
     share_buf = attr->share_buf_en;
-    pme_share_en = attr->share_buf_en && (attr->svc_version != OT_VENC_SVC_V2);
+    pme_share_en = (td_bool)(attr->share_buf_en && (attr->svc_version != OT_VENC_SVC_V2));
     frame_buf_ratio = attr->frame_buf_ratio;
 
     y_header_stride = OT_ALIGN_UP(width, 1024) / 1024 *64; /* 1024 64: algorithm param */
@@ -672,7 +672,7 @@ __inline static td_u32 ot_venc_get_h265_pic_buf_size(const ot_venc_buf_attr *att
     height_align32 = OT_ALIGN_UP(attr->pic_buf_attr.height, 32); /* 32: align */
     height_align16 = OT_ALIGN_UP(attr->pic_buf_attr.height, 16); /* 16: align */
     share_buf = attr->share_buf_en;
-    pme_share_en = attr->share_buf_en && (attr->svc_version != OT_VENC_SVC_V2);
+    pme_share_en = (td_bool)(attr->share_buf_en && (attr->svc_version != OT_VENC_SVC_V2));
     frame_buf_ratio = attr->frame_buf_ratio;
 
     y_header_stride =   OT_ALIGN_UP(width, 1024) / 1024 * 128; /* 1024 128: algorithm param */

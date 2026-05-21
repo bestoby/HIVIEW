@@ -1468,13 +1468,7 @@ static hi_s32 sample_comm_vi_init_one_pipe(hi_vi_pipe vi_pipe, const sample_vi_p
         return HI_FAILURE;
     }
 
-    //maohw 本接口必须在START PIPE前调用
-    if(SENSOR0_TYPE == SONY_IMX415_MIPI_8M_30FPS_12BIT)
-    {
-      ot_vi_pipe vi_pipe = 0;
-      hi_frame_interrupt_attr interrupt_attr = {HI_FRAME_INTERRUPT_EARLY, 2060};
-      hi_mpi_vi_set_pipe_frame_interrupt_attr(vi_pipe, &interrupt_attr);
-    }
+    mppex_comm_vi_init_one_pipe(vi_pipe, pipe_info);
 
     ret = sample_comm_vi_set_pipe_pixel_rate(vi_pipe, pipe_info->pixel_rate);
     if (ret != HI_SUCCESS) {

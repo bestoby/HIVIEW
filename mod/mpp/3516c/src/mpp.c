@@ -584,6 +584,7 @@ int gsf_mpp_venc_start(gsf_mpp_venc_t *venc)
   hi_vpss_grp vpss_grp = venc->VpssGrp;
   hi_vpss_chn vpss_chn = venc->VpssChn;
   hi_venc_chn venc_chn = venc->VencChn;
+  hi_mod_id   src_id   = venc->srcModId;
   
   sample_comm_venc_chn_param venc_create_param = {0};
 
@@ -612,15 +613,24 @@ int gsf_mpp_venc_start(gsf_mpp_venc_t *venc)
       sample_print("Venc Start failed for %#x!\n", ret);
       goto EXIT;
   }
-  if(vpss_grp >= 0)
-  {
+  if(src_id == HI_ID_VPSS && vpss_grp >= 0)
+  { // HI_ID_VPSS = 7;
     if ((ret = sample_comm_vpss_bind_venc(vpss_grp, vpss_chn, venc_chn)) != HI_SUCCESS) {
         sample_print("sample_comm_vpss_bind_venc failed for %#x!\n", ret);
         goto EXIT_VENC_H264_STOP;
     }
   }
-  
-  printf("%s => venc_chn:%d, type:%d, vpss_grp:%d, vpss_chn:%d\n", __func__, venc_chn, venc_create_param.type, vpss_grp, vpss_chn);
+  else if(src_id == HI_ID_VENC && vpss_chn >= 0)
+  { // HI_ID_VENC = 8;
+    //grp0[0,1,2], grp1[3,4,5];
+    extern hi_s32 sample_venc_chn_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id);
+    ret = sample_venc_chn_bind_venc_chn((vpss_grp == 0)?0:3/*venc_chn_src*/, venc_chn/*venc_chn_dst*/);
+    if (ret != HI_SUCCESS) {
+        sample_print("sample_venc_chn_bind_venc_chn failed for %#x!\n", ret);
+        goto EXIT_VENC_H264_STOP;
+    }
+  }
+  printf("%s => venc_chn:%d, type:%d, src_id:%d, vpss_grp:%d, vpss_chn:%d\n", __func__, venc_chn, venc_create_param.type, src_id, vpss_grp, vpss_chn);
   
   return ret;
 
@@ -639,8 +649,17 @@ int gsf_mpp_venc_stop(gsf_mpp_venc_t *venc)
   hi_vpss_grp vpss_grp = venc->VpssGrp;
   hi_vpss_chn vpss_chn = venc->VpssChn;
   hi_venc_chn venc_chn = venc->VencChn;
-  if(vpss_grp >= 0)
+  hi_mod_id   src_id   = venc->srcModId;
+  
+  if(src_id == HI_ID_VPSS && vpss_grp >= 0)
+  {  
     sample_comm_vpss_un_bind_venc(vpss_grp, vpss_chn, venc_chn);
+  }
+  else if(src_id == HI_ID_VENC && vpss_chn >= 0)
+  {
+    extern hi_s32 sample_venc_chn_un_bind_venc_chn(hi_s32 src_chn_id, hi_s32 dest_chn_id);
+    sample_venc_chn_un_bind_venc_chn(vpss_chn, venc_chn);
+  }
   sample_comm_venc_stop(venc_chn);
   return ret;
 }

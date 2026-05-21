@@ -191,6 +191,8 @@ extern "C" {
 /* structure define */
 typedef enum {
     PIC_CIF,
+    #define HAVE_PIC_288P
+    PIC_288P,    /* 512 * 288 */
     PIC_360P,    /* 640 * 360 */
     #define HAVE_PIC_512P
     PIC_512P,    /* 640 * 512 maohw */
@@ -532,7 +534,9 @@ typedef struct {
     hi_venc_gop_attr gop_attr;
     hi_payload_type type;
     sample_rc rc_mode;
-    hi_u32 bitrate;//maohw;
+    //maohw;
+    hi_u32 bitrate;
+    hi_u32 mini_buf_mode; 
 } sample_comm_venc_chn_param;
 
 typedef struct {

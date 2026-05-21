@@ -255,7 +255,7 @@ __inline static td_u32 ot_venc_get_pic_info_buf_size(ot_payload_type type, const
     tmv_size = 0;
     width = attr->pic_buf_attr.width;
     height = attr->pic_buf_attr.height;
-    pme_share_en = (attr->share_buf_en == TD_TRUE) && (attr->svc_version != OT_VENC_SVC_V2);
+    pme_share_en = (td_bool)((attr->share_buf_en == TD_TRUE) && (attr->svc_version != OT_VENC_SVC_V2));
 
     switch (type) {
         case OT_PT_H264:

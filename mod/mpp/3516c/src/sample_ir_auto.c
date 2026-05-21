@@ -579,50 +579,7 @@ void sample_ir_cut_enable(hi_vi_pipe vi_pipe)
     pthread_mutex_unlock(&g_ir_mutex);
     
     g_ast_ir_attr[vi_pipe].ir_status = HI_ISP_IR_STATUS_NORMAL;
-	return;
-	
-	
-    hi_u32 gpio_chip_num7 = 7; // gpio7
-    hi_u32 gpio_chip_num1 = 1; // gpio1
-    hi_u32 gpio_offset6 = 6;  // gpio7_6
-    hi_u32 gpio_offset1 = 1;  // gpio1_1
-    hi_u32 gpio_offset7 = 7;  // gpio7_7
-    hi_u32 gpio_offset0 = 0;  // gpio1_0
-    if (board_type == DMEB_QFN) {
-        // export
-        sample_ir_cut_gpio_export(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_export(gpio_chip_num1, gpio_offset0);
-        // dir
-        sample_ir_cut_gpio_dir(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_dir(gpio_chip_num1, gpio_offset0);
-        // data
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset7, 0); // set gpio7_7 0
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset0, 1); // set gpio1_0 1
-        /* 1000000 1000ms */
-        usleep(1000000);
-        // back to original
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset7, 0); // set gpio7_7 0
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset0, 0); // set gpio1_0 0
-        sample_ir_cut_gpio_unexport(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_unexport(gpio_chip_num1, gpio_offset0);
-    } else {
-        // export
-        sample_ir_cut_gpio_export(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_export(gpio_chip_num7, gpio_offset6);
-        // dir
-        sample_ir_cut_gpio_dir(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_dir(gpio_chip_num7, gpio_offset6);
-        // data
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset1, 0); // set gpio1_1 0
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset6, 1); // set gpio7_6 1
-        /* 1000000 1000ms */
-        usleep(1000000);
-        // back to original
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset1, 0); // set gpio1_1 0
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset6, 0); // set gpio7_6 0
-        sample_ir_cut_gpio_unexport(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_unexport(gpio_chip_num7, gpio_offset6);
-    }
+
     return;
 }
 
@@ -635,50 +592,8 @@ void sample_ir_cut_disable(hi_vi_pipe vi_pipe)
     }
     pthread_mutex_unlock(&g_ir_mutex);
     g_ast_ir_attr[vi_pipe].ir_status = HI_ISP_IR_STATUS_IR;
-	return;
-	
-    hi_u32 gpio_chip_num7 = 7; // gpio7
-    hi_u32 gpio_chip_num1 = 1; // gpio1
-    hi_u32 gpio_offset7 = 7;  // gpio7_7
-    hi_u32 gpio_offset0 = 0;  // gpio1_0
-    hi_u32 gpio_offset6 = 6;  // gpio7_6
-    hi_u32 gpio_offset1 = 1;  // gpio1_1
-    if (board_type == DMEB_QFN) {
-        // export
-        sample_ir_cut_gpio_export(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_export(gpio_chip_num1, gpio_offset0);
-        // dir
-        sample_ir_cut_gpio_dir(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_dir(gpio_chip_num1, gpio_offset0);
-        // data
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset7, 1); // set gpio7_7 1
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset0, 0); // set gpio1_0 0
-        /* 1000000 1000ms */
-        usleep(1000000);
-        // back to original
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset7, 0); // set gpio7_7 0
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset0, 0); // set gpio1_1 0
-        sample_ir_cut_gpio_unexport(gpio_chip_num7, gpio_offset7);
-        sample_ir_cut_gpio_unexport(gpio_chip_num1, gpio_offset0);
-    } else {
-        // export
-        sample_ir_cut_gpio_export(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_export(gpio_chip_num7, gpio_offset6);
-        // dir
-        sample_ir_cut_gpio_dir(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_dir(gpio_chip_num7, gpio_offset6);
-        // data
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset1, 1); // set gpio1_1 1
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset6, 0); // set gpio7_6 0
-        /* 1000000 1000ms */
-        usleep(1000000);
-        // back to original
-        sample_ir_cut_gpio_write(gpio_chip_num1, gpio_offset1, 0); // set gpio1_1 0
-        sample_ir_cut_gpio_write(gpio_chip_num7, gpio_offset6, 0); // set gpio7_6 0
-        sample_ir_cut_gpio_unexport(gpio_chip_num1, gpio_offset1);
-        sample_ir_cut_gpio_unexport(gpio_chip_num7, gpio_offset6);
-    }
-    return;
+	  
+	  return;
 }
 
 void sample_ir_auto_usage(const char* s_prg_nm)

@@ -52,7 +52,7 @@ static int avs = 0; // codec_ipc.vi.avs;
           (w >= 640 && h >= 640)?PIC_640P: \
           (w >= 640 && h >= 512)?PIC_512P: \
           (w >= 640 && h >= 360)?PIC_360P: \
-          (w >= 384 && h >= 288)?PIC_288P: \
+          (w >= 512 && h >= 288)?PIC_288P: \
           PIC_CIF
 
 static gsf_resolu_t __pic_wh[PIC_BUTT] = {
@@ -69,7 +69,7 @@ static gsf_resolu_t __pic_wh[PIC_BUTT] = {
       [PIC_640P]      = {0, 640, 640},
       [PIC_512P]      = {0, 640, 512},
       [PIC_360P]      = {0, 640, 360},
-      [PIC_288P]      = {0, 384, 288},
+      [PIC_288P]      = {0, 512, 288},
       [PIC_CIF]       = {0, 352, 288},
 };
 
@@ -158,9 +158,11 @@ int venc_start(int start)
 
     gsf_mpp_venc_t venc = {
       .VencChn    = i*GSF_CODEC_VENC_NUM+j,
-      .srcModId   = HI_ID_VPSS,
+      //.srcModId   = HI_ID_VPSS,
+      .srcModId   = (j && codec_ipc.venc[j].type != GSF_ENC_JPEG)?HI_ID_VENC:HI_ID_VPSS, 
       .VpssGrp    = i,
-      .VpssChn    = (p_vpss[i].enable[j])?j:0,
+      //.VpssChn    = (p_vpss[i].enable[j])?j:0,
+      .VpssChn    = 0,
       .enPayLoad  = PT_VENC(codec_ipc.venc[j].type),
       .enSize     = PIC_WIDTH(codec_ipc.venc[j].width, codec_ipc.venc[j].height),
       .enRcMode   = codec_ipc.venc[j].rcmode,
@@ -231,6 +233,8 @@ int venc_start(int start)
   
   if(!start)
     return 0;
+  
+  //while(1)sleep(1);  
     
   // recv start;
   printf("start >>> gsf_mpp_venc_recv s32Cnt:%d\n", st.s32Cnt);
@@ -267,6 +271,7 @@ void mpp_ini_3516c(gsf_mpp_cfg_t *cfg, gsf_rgn_ini_t *rgn_ini, gsf_venc_ini_t *v
       cfg->lane = 0; cfg->wdr = 0; cfg->res = 4; cfg->fps = 30;
       rgn_ini->ch_num = 1; rgn_ini->st_num = 2;
       venc_ini->ch_num = 1; venc_ini->st_num = 2;
+      //VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_2560X1440, PIC_288P);
       VPSS_BIND_VI(0, 0, 0, 0, 1, 1, PIC_2560X1440, PIC_640P);
     }
     
@@ -369,7 +374,7 @@ int mpp_start(gsf_bsp_def_t *def)
     {
       lens_ini.ch_num = 1;  // lens number;
       strncpy(lens_ini.sns, cfg.snsname, sizeof(lens_ini.sns)-1);
-      strncpy(lens_ini.lens, "LENS-NAME", sizeof(lens_ini.lens)-1);
+      strncpy(lens_ini.board, def->board.type, sizeof(lens_ini.board)-1);
       gsf_lens_init(&lens_ini);
     }
     
@@ -395,6 +400,8 @@ int mpp_start(gsf_bsp_def_t *def)
 	    gsf_lens_start(0, uart_name);
   	}
     
+    
+    //while(1)sleep(1);
     
     
     // vpss start;
@@ -479,6 +486,8 @@ static int voice_recv(char *msg, int size, int err)
 int main_start(gsf_bsp_def_t *bsp_def)
 {
     mpp_start(bsp_def);
+    
+    //while(1)sleep(1);
 
     venc_start(1);
     
@@ -642,8 +651,8 @@ int main_loop(void)
         gsf_mpp_vpss_ctl(vpssGrp, GSF_MPP_VPSS_CTL_ATTR, &grp_attr);
         MAX_W = grp_attr.max_width;
         MAX_H = grp_attr.max_height;
-        MIN_W = MAX_W/2.0;
-        MIN_H = MAX_H/2.0;
+        MIN_W = MAX_W/3.0;
+        MIN_H = MAX_H/3.0;
       }
       
       if(dzoom_plus > 0)

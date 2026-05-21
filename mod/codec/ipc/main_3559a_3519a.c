@@ -327,7 +327,7 @@ int mpp_start(gsf_bsp_def_t *def)
     
     lens_ini.ch_num = 1;  // lens number;
     strncpy(lens_ini.sns, cfg.snsname, sizeof(lens_ini.sns)-1);
-    strncpy(lens_ini.lens, "LENS-NAME", sizeof(lens_ini.lens)-1);
+    strncpy(lens_ini.board, def->board.type, sizeof(lens_ini.board)-1);
     gsf_lens_init(&lens_ini);
 
     // vi start;
