@@ -13,7 +13,7 @@ extern int dzoom_plus;
 
 static int _sensor_flag = 0;
 static int _flash_emmc  = 0;
-static int _board_type  = DMEB_BGA;
+static int _board_type  = 0; //DMEB_QFN/DMEB_BGA
 
 enum {
   LENS_TYPE_UART,  // 0: fixed-lens & uart-zoom
